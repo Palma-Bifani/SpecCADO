@@ -1,0 +1,89 @@
+'''Example script for SimCADO spectroscopy mode'''
+# Started from
+# Version 2018-05-02 (final version 6)
+#
+# 2018-05-02 : Rebuild slit - the slit pixel scale does not have to relate to
+#              the psf scale. It can also be unequal in xi and eta direction.
+#
+#
+# TODO/CHECK : changing oversample parameters changes output level
+#              I have to be more careful when computing the number of
+#              photons per pixel. What are the units of the xilam image?
+#              (per um? per arcsec2? per arcsec?) The interpolated values
+#              then need to be multiplied by the correct pixel sizes to give
+#              photons per second.
+# TODO : use SimCADO/MICADO transmission functions
+
+import glob
+
+import datetime
+
+import numpy as np
+
+from scipy.interpolate import interp1d
+from scipy.interpolate import RectBivariateSpline
+
+from astropy.io import fits
+from astropy.wcs import WCS
+from astropy import units as u
+from astropy import constants as c
+
+import simcado as sim
+import speccado as sc
+
+
+##################### MAIN ####################
+def main():
+    '''Main function
+
+    Define source components, commands, psf, detector, etc. here
+    '''
+    ## Commands to control the simulation
+    #cmds = sim.UserCommands('spectro_HK.config')
+    cmds = sim.UserCommands('spectro_IJ.config')
+
+    cmds['OBS_EXPTIME'] = 60
+    cmds['FPA_LINEARITY_CURVE'] = 'none'
+
+    cmds['SPEC_INTERPOLATION'] = 'spline'
+    #cmds['SPEC_INTERPOLATION'] = 'nearest'
+
+    ## Define the source(s)  -- Only point sources for the moment
+    specfiles = ['GW_Ori+9mag.fits', 'GW_Ori+9mag.fits']
+    sourcepos = [[-1, 0], [1, 0]]
+
+    ## Background spectra - these fill the slit
+    bgfiles = ['atmo_emission.fits']
+
+    ## Create source object. The units of the spectra are
+    ##         - ph / um  for source spectra
+    ##         - erg / (um arcsec2) for background spectra
+    srcobj = sc.SpectralSource(cmds, specfiles, sourcepos, bgfiles)
+
+    ## Load the psf
+    psfobj = sc.prepare_psf("PSF_SCAO_120.fits")
+
+    # Create detector
+    detector = sim.Detector(cmds, small_fov=False)
+
+    # Create optical train
+    opttrain = sim.OpticalTrain(cmds)
+    tc_lam = opttrain.tc_mirror.lam_orig
+    tc_val = opttrain.tc_mirror.val_orig
+    transmission = interp1d(tc_lam, tc_val, kind='linear',
+                            bounds_error=False, fill_value=0.)
+
+    ## Prepare the order descriptions
+    layoutlist = glob.glob("?_?.TXT")
+
+    tracelist = list()
+    for lfile in layoutlist:
+        tracelist.append(sc.SpectralTrace(lfile))
+
+    sc.do_one_chip(detector.chips[3], srcobj, psfobj, tracelist, cmds,
+                transmission)
+    #sc.do_all_chips(detector, srcobj, psfobj, tracelist, cmds, transmission)
+
+
+if __name__ == "__main__":
+    main()
