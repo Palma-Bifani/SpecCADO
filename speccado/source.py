@@ -1,4 +1,5 @@
 '''Spectroscopic source object'''
+import sys
 import numpy as np
 
 from astropy.io import fits
@@ -72,7 +73,13 @@ class Spectrum(object):
         #if srcpos is not None:
         self.srcpos = srcpos
 
-        fluxunit = u.Unit(fits.getheader(specfile)['BUNIT'])
+        try:
+            fluxunit = u.Unit(fits.getheader(specfile)['BUNIT'])
+        except KeyError:
+            print("Input file ", specfile,
+                  ":\n    Required keyword 'BUNIT' not found")
+            sys.exit(1)
+
         flux = fits.getdata(specfile) * fluxunit
 
         self.wcs = WCS(specfile)
