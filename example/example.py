@@ -1,18 +1,4 @@
 '''Example script for SimCADO spectroscopy mode'''
-# Started from
-# Version 2018-05-02 (final version 6)
-#
-# 2018-05-02 : Rebuild slit - the slit pixel scale does not have to relate to
-#              the psf scale. It can also be unequal in xi and eta direction.
-#
-#
-# TODO/CHECK : changing oversample parameters changes output level
-#              I have to be more careful when computing the number of
-#              photons per pixel. What are the units of the xilam image?
-#              (per um? per arcsec2? per arcsec?) The interpolated values
-#              then need to be multiplied by the correct pixel sizes to give
-#              photons per second.
-# TODO : use SimCADO/MICADO transmission functions
 
 import glob
 
