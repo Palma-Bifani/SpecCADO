@@ -17,6 +17,28 @@ class SpectralTrace(object):
     ----------
     layoutfile : str
         name of a file to be read with `simcado.optics.read_spec_order`
+
+    Attributes
+    ----------
+    file :
+        name of the file that specified the trace
+    layout :
+        table of with wavelength lam and positions xi, yi for lines defining
+        the trace
+    xilam2x, xilam2y :
+        polynomials to convert slit position xi and wavelength lam to position
+        x, y in the focal plane
+    xy2xi, xy2lam :
+        polynomials to convert position x, y in the focal plane to slit position
+        xi and wavelength lambda
+    left_edge, centre_trace, right_edge :
+        1D polynomials giving x as a function of y of the left edge, middle
+        and right edge of the trace on the focal plane (xi = 0, 0.5, 1,
+        respectively)
+    dlam_by_dy :
+        polynomial giving the wavelength dispersion in the y direction in um/mm
+        as a function of focal plane position x, y
+
     '''
 
     def __init__(self, layoutfile):
