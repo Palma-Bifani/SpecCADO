@@ -9,13 +9,21 @@ python setup.py install
 
 The directory `example/` includes a script to demonstrate how to use SpecCADO. Run it by doing
 ```sh
-python example.py
+python simulate_example.py
 ```
 in the shell, or
 ```python
-%run example.py
+%run simulate_example.py
 ```
-within an `ipython` session. As delivered, `example.py` simulates a single MICADO chip. In order to simulate the full focal-plane array, comment out the line starting `sc.do_all_chips`. 
+within an `ipython` session. As delivered, `simulate_example.py` simulates a single MICADO chip. In order to simulate the full focal-plane array, comment out the line starting `sc.do_all_chips`.
+
+There is also a script that recifies the simulated spectra using the
+known spectral mapping. Run it with
+```sh
+python rectify_example.py <filename>
+```
+where ``filename`` refers to a SpecCADO simulation covering the full
+focal-plane array.
 
 ## Requirements
 
