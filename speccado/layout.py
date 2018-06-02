@@ -289,3 +289,12 @@ def is_order_on_chip(spectrace, chip, ylo=None, yhi=None):
                         spectrace.left_edge(yhi), spectrace.right_edge(yhi)])
 
     return np.any((xcorner > xlo) * (xcorner <= xhi))
+
+
+def analyse_trace(trace):
+    '''Get a few numbers describing the extent of a trace'''
+    lam_min = np.min(trace.layout['lam'])
+    lam_max = np.max(trace.layout['lam'])
+    dlam_min = np.min(trace.dlam_by_dy(trace.layout['x2'],
+                                       trace.layout['y2']))
+    return lam_min, lam_max, dlam_min
