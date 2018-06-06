@@ -66,9 +66,9 @@ def main():
     for lfile in layoutlist:
         tracelist.append(sc.SpectralTrace(lfile))
 
-    sc.do_one_chip(detector.chips[3], srcobj, psfobj, tracelist, cmds,
-                transmission)
-    #sc.do_all_chips(detector, srcobj, psfobj, tracelist, cmds, transmission)
+    #sc.do_one_chip(detector.chips[3], srcobj, psfobj, tracelist, cmds,
+    #            transmission)
+    sc.do_all_chips(detector, srcobj, psfobj, tracelist, cmds, transmission)
 
 
 if __name__ == "__main__":
