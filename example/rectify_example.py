@@ -24,7 +24,7 @@ def main(filename):
     params = dict()
     params['pixsize'] = 0.015  # mm
     params['pixscale'] = 0.004  # arcsec
-    params['slit_length'] = 4   # arcsec
+    params['slit_length'] = 3   # arcsec
 
     print("Create Chip objects ", filename)
     hdulist = fits.open(filename)
