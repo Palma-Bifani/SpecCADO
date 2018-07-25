@@ -28,6 +28,7 @@ def main():
     #cmds = sim.UserCommands('spectro_HK.config')
     cmds = sim.UserCommands('spectro_IJ.config')
 
+    # Optionally set some parameters explicitely.
     cmds['OBS_EXPTIME'] = 60
     cmds['FPA_LINEARITY_CURVE'] = 'none'
 
@@ -52,7 +53,12 @@ def main():
     # Create detector
     detector = sim.Detector(cmds, small_fov=False)
 
-    # Create optical train
+    # Create transmission curve.
+    # Here we take the  transmission from the simcado optical train,
+    # this includes atmospheric, telescope and instrumental
+    # transmissivities.
+    # You can create your own transmission by suitably defining
+    # tc_lam (in microns) and tc_val (as numpy arrays).
     opttrain = sim.OpticalTrain(cmds)
     tc_lam = opttrain.tc_mirror.lam_orig
     tc_val = opttrain.tc_mirror.val_orig
