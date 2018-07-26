@@ -1,11 +1,43 @@
 '''Functions and classes relating to spectroscopic layout'''
 import numpy as np
+from scipy.interpolate import RectBivariateSpline
+
 from astropy.io import fits
 from astropy.wcs import WCS
-from scipy.interpolate import RectBivariateSpline
+from astropy.table import Table
+
 import simcado as sim
 
 __all__ = ['SpectralTrace', 'is_order_on_chip']
+
+#class SpectralTraceList(list):
+#    '''List of spectral traces
+#
+#    The class is instantiated from a multi-extension FITS file, where
+#    each extension contains the description of a spectral order and is
+#    read into a `SpectralTrace' object.
+#
+#    Parameters
+#    ----------
+#    layoutfile : str
+#       name of a FITS file
+#
+#    Returns
+#    -------
+#    List of objects of class `SpectralTrace'
+#    '''
+#
+#    def __init__(self, layoutfile):
+#
+#        self = []
+#        # get number of extensions in FITS file
+#        with fits.open(layoutfile) as hdul:
+#            n_ext = len(hdul) - 1
+#        print(n_ext)
+#        for i_ext in range(n_ext):
+#            self.append(SpectralTrace(layoutfile, i_ext + 1))
+#            print(self[-1])
+
 
 class SpectralTrace(object):
     '''Description of a spectral trace
@@ -16,7 +48,10 @@ class SpectralTrace(object):
     Parameters
     ----------
     layoutfile : str
-        name of a file to be read with `simcado.optics.read_spec_order`
+        name of a FITS file
+    ext : int
+        number of FITS extension to be read with `read_spec_order`
+
 
     Attributes
     ----------
@@ -39,17 +74,31 @@ class SpectralTrace(object):
         polynomial giving the wavelength dispersion in the y direction in um/mm
         as a function of focal plane position x, y
 
+
+    Notes
+    -----
+    Attribute `.layout' is an `astropy.Table' with columns
+        - lam : wavelength
+        - x_1, x_2, ... : focal plane x-coordinates of points along the slit
+        - y_1, y_2, ... : focal plane y-coordinates of points along the slit
+        - r50_1, r50_2, ... : radii of 50% encircled energy
+        - r80_1, r80_2, ... : radii of 80% encircled energy
     '''
 
-    def __init__(self, layoutfile):
+    def __init__(self, layoutfile, hdu=1):
         self.file = layoutfile
-        self.layout = sim.optics.read_spec_order(layoutfile)
+        # self.layout = read_spec_order(layoutfile, ext)
+        self.layout = Table.read(layoutfile, hdu)
         self.xy2xi, self.xy2lam = xy2xilam_fit(self.layout)
         self.xilam2x, self.xilam2y = xilam2xy_fit(self.layout)
         self.dlam_by_dy = sim.utils.deriv_polynomial2d(self.xy2lam)[1]
         self.left_edge = trace_fit(self.layout, 'left')
         self.centre_trace = trace_fit(self.layout, 'centre')
         self.right_edge = trace_fit(self.layout, 'right')
+        try:
+            self.name = self.layout.meta['EXTNAME']
+        except KeyError:
+            self.name = filename + '[' + hdu + ']'
 
 
 class XiLamImage(object):
@@ -298,3 +347,31 @@ def analyse_trace(trace):
     dlam_min = np.min(trace.dlam_by_dy(trace.layout['x2'],
                                        trace.layout['y2']))
     return lam_min, lam_max, dlam_min
+
+
+def read_spec_order(filename, ext=0):
+    '''Read spectral order definition from a FITS file
+
+    Parameters
+    ----------
+    filename : str
+
+    Returns
+    -------
+    If ext == 0: a list of SpectralTrace objects (all extensions of `filename')
+    If ext > 0: a SpectralTrace object loaded from extension `ext' of `filename'
+    '''
+    if ext == 0:
+        with fits.open(filename) as hdul:
+            n_ext = len(hdul)
+        tablist = []
+        for exti in range(n_ext -1):
+            try:
+                tablist.append(SpectralTrace(filename, hdu=ext+1))
+            except IndexError:
+                pass
+
+        return tablist
+
+    else:
+        return SpectralTrace(filename, hdu=ext)

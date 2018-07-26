@@ -66,11 +66,13 @@ def main():
                             bounds_error=False, fill_value=0.)
 
     ## Prepare the order descriptions
-    layoutlist = glob.glob("?_?.TXT")
+    #layoutlist = glob.glob("?_?.TXT")
+    layoutfile = 'specorders-160904.fits'
+    tracelist = sc.layout.read_spec_order(layoutfile)
 
-    tracelist = list()
-    for lfile in layoutlist:
-        tracelist.append(sc.SpectralTrace(lfile))
+    #    tracelist = list()
+    #for lfile in layoutlist:
+    #    tracelist.append(sc.SpectralTrace(lfile))
 
     #sc.do_one_chip(detector.chips[3], srcobj, psfobj, tracelist, cmds,
     #            transmission)
