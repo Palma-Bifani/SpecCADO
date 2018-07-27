@@ -365,9 +365,9 @@ def read_spec_order(filename, ext=0):
         with fits.open(filename) as hdul:
             n_ext = len(hdul)
         tablist = []
-        for exti in range(n_ext -1):
+        for i_ext in np.arange(1, n_ext):
             try:
-                tablist.append(SpectralTrace(filename, hdu=ext+1))
+                tablist.append(SpectralTrace(filename, hdu=i_ext))
             except IndexError:
                 pass
 
