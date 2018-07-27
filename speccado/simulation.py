@@ -71,7 +71,7 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
 
             # Does the order appear on the chip?
             if not is_order_on_chip(spectrace, chip, ymin, ymax):
-                message(spectrace.file + " is not on chip", indent)
+                message(spectrace.name + " is not on chip", indent)
                 continue
 
             # Need to know the wavelength range for chip slice
@@ -86,7 +86,7 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
             lam_max += 0.3 * lam_range
             lam_min -= 0.3 * lam_range
             xcen = spectrace.xilam2x(0.5, (lam_min + lam_max) / 2)
-            message(spectrace.file + ":", indent)
+            message(spectrace.name + ":", indent)
             indent += "    "
             message("lam_min: " + str(lam_min), indent)
             message("lam_max: " + str(lam_max), indent)
@@ -100,7 +100,8 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
                 xilam = XiLamImage(src, psf, lam_min, lam_max, dlam_per_pix,
                                    cmds, transmission)
             except ValueError:
-                message(" ---> " + spectrace.file + " gave ValueError", indent)
+                message(" ---> " + spectrace.file + "[" + spectrace.name +
+                        "] gave ValueError", indent)
                 indent = indent[:-4]
                 continue
 
