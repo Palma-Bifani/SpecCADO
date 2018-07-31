@@ -112,33 +112,38 @@ class XiLamImage(object):
                  transmission):
 
         # Slit dimensions: oversample with respect to detector pixel scale
-        pixscale = cmds['SIM_DETECTOR_PIX_SCALE']
+        pixscale = cmds['SIM_DETECTOR_PIX_SCALE']  # arcsec/detector pixel
         xi_scale = 2
         eta_scale = 4
 
         # Steps in xi (along slit length) and eta (along slit width)
-        delta_xi = pixscale / xi_scale
+        delta_xi = pixscale / xi_scale      # in arcsec / xilam pixel
         delta_eta = pixscale / eta_scale
 
         # Slit width. Input in arcsec. The slit image has npix_eta pixels
         # in the width (dispersion) direction. This corresponds to a wavelength
         # range which is determined by the local dispersion dlam_per_pix, given
         # per *detector pixel*
-        slit_width_as = cmds['SPEC_SLIT_WIDTH']
+        slit_width_as = cmds['SPEC_SLIT_WIDTH']         # in arcsec
         npix_eta = np.int(slit_width_as / delta_eta)
-        eta_cen = npix_eta / 2 - 0.5
         slit_width_lam = dlam_per_pix * npix_eta / eta_scale
 
         # Slit length. Input in arcsec. The slit image has npix_xi pixels
         # in the length direction, as does the xilam image.
         slit_length_as = cmds['SPEC_SLIT_LENGTH']
         npix_xi = np.int(slit_length_as / delta_xi)
-        xi_cen = npix_xi / 2 - 0.5
+
+        # pixel coordinates of slit centre
+        xi_cen = npix_xi / 2 - 0.5    # TODO: is this useful? or rather xi=0?
+        eta_cen = npix_eta / 2 - 0.5
 
         # Step in wavelength, oversample at least 5 times with respect
-        # to detector dispersion. The xilam image has npix_lam pixels in
-        # the wavelength direction. Initialise the wavelength vector.
+        # to detector dispersion, better use the dispersion of the best source
+        # spectrum.
         delta_lam = min(0.2 * dlam_per_pix, src.dlam)
+
+        # Initialise the wavelength vector. The xilam image will have npix_lam
+        # pixels in the wavelength direction.
         lam = sim.utils.seq(lam_min, lam_max, delta_lam)
         npix_lam = len(lam)
 
@@ -149,12 +154,16 @@ class XiLamImage(object):
         slithdul = fits.HDUList()
 
         # Create a wcs for the slit
+        # Note that the xi coordinates are excentric for the 16 arcsec slit
+        x1 = -1.5
         slitwcs = WCS(naxis=2)
         slitwcs.wcs.ctype = ['LINEAR', 'LINEAR']
         slitwcs.wcs.cunit = psf.wcs.wcs.cunit
-        slitwcs.wcs.crval = [0, 0]
-        slitwcs.wcs.crpix = [1 + xi_cen, 1 + eta_cen]
+        slitwcs.wcs.crval = [-1.5, 0]
+        slitwcs.wcs.crpix = [1, 1 + eta_cen]
         slitwcs.wcs.cdelt = [delta_xi, delta_eta]
+
+        xi_cen = -x1 / delta_xi
 
         ## Loop over all sources
         for curspec in src.spectra:
@@ -216,15 +225,28 @@ class XiLamImage(object):
 
         slithdul.writeto("slitimages.fits", overwrite=True)
 
-        ## WCS for the xi-lambda-image, i.e. the rectified 2D spectrum
+        ## Default WCS with xi in arcsec from -1.5 to 13.5
+        ## TODO: Make this default
+        x1 = -1.5   # Take from elsewhere
         self.wcs = WCS(naxis=2)
         self.wcs.wcs.crpix = [1, 1]
-        self.wcs.wcs.crval = [lam[0], 0]
+        self.wcs.wcs.crval = [lam[0], x1]
         self.wcs.wcs.pc = [[1, 0], [0, 1]]
-        self.wcs.wcs.cdelt = [delta_lam, 1./npix_xi]
+        self.wcs.wcs.cdelt = [delta_lam, delta_xi]  #
         self.wcs.wcs.ctype = ['LINEAR', 'LINEAR']
         self.wcs.wcs.cname = ['WAVELEN', 'SLITPOS']
-        self.wcs.wcs.cunit = ['um', '']
+        self.wcs.wcs.cunit = ['um', 'arcsec']
+
+        ## WCS for the xi-lambda-image, i.e. the rectified 2D spectrum
+        ## Alternative : xi = [0, 1], dimensionless
+        self.wcsa = WCS(naxis=2)
+        self.wcsa.wcs.crpix = [1, 1]
+        self.wcsa.wcs.crval = [lam[0], 0]
+        self.wcsa.wcs.pc = [[1, 0], [0, 1]]
+        self.wcsa.wcs.cdelt = [delta_lam, 1./npix_xi]
+        self.wcsa.wcs.ctype = ['LINEAR', 'LINEAR']
+        self.wcsa.wcs.cname = ['WAVELEN', 'SLITPOS']
+        self.wcsa.wcs.cunit = ['um', '']
 
         self.xi = self.wcs.all_pix2world(lam[0], np.arange(npix_xi), 0)[1]
         self.lam = lam
@@ -233,8 +255,14 @@ class XiLamImage(object):
         self.interp = RectBivariateSpline(self.xi, self.lam, self.image)
 
 
+        #self.xi2 = self.wcsa.all_pix2world(lam[0], np.arange(npix_xi), 0)[1]
+        #self.lam2 = lam
+        #self.interp2 = RectBivariateSpline(self.xi2, self.lam2, self.image)
+
     def writeto(self, outfile, overwrite=True):
-        hdulist = fits.HDUList(fits.PrimaryHDU(header=self.wcs.to_header(),
+        header = self.wcs.to_header()
+        header.extend(self.wcsa.to_header(key='A'))
+        hdulist = fits.HDUList(fits.PrimaryHDU(header=header,
                                                data=self.image))
         hdulist.writeto(outfile, overwrite=overwrite)
 
@@ -282,10 +310,21 @@ def xilam2xy_fit(layout):
     '''
     from astropy.modeling import models, fitting
 
-    x = np.concatenate([layout['x1'], layout['x2'], layout['x3']])
-    y = np.concatenate([layout['y1'], layout['y2'], layout['y3']])
-    xi = np.repeat([0., 0.5, 1.], len(layout))
-    lam = np.tile(layout['lam'], 3)
+    xlist = []
+    ylist = []
+    for key in layout.colnames:
+        if key[0] == 'x':
+            xlist.append(layout[key])
+        if key[0] == 'y':
+            ylist.append(layout[key])
+
+    #x = np.concatenate([layout['x1'], layout['x2'], layout['x3']])
+    #y = np.concatenate([layout['y1'], layout['y2'], layout['y3']])
+    x = np.concatenate(xlist)
+    y = np.concatenate(ylist)
+    #xi = np.repeat([0., 0.5, 1.], len(layout))
+    xi = np.repeat([-1.5, 0., 1.5, 6.0, 13.5], len(layout))  # TODO: Values from elsewhere
+    lam = np.tile(layout['lam'], len(xlist))
 
     pinit_x = models.Polynomial2D(degree=4)
     pinit_y = models.Polynomial2D(degree=4)
@@ -303,10 +342,21 @@ def xy2xilam_fit(layout):
     Fits are of degree 4 as a function of focal plane position'''
     from astropy.modeling import models, fitting
 
-    x = np.concatenate([layout['x1'], layout['x2'], layout['x3']])
-    y = np.concatenate([layout['y1'], layout['y2'], layout['y3']])
-    xi = np.repeat([0., 0.5, 1.], len(layout))
-    lam = np.tile(layout['lam'], 3)
+    xlist = []
+    ylist = []
+    for key in layout.colnames:
+        if key[0] == 'x':
+            xlist.append(layout[key])
+        if key[0] == 'y':
+            ylist.append(layout[key])
+
+    #x = np.concatenate([layout['x1'], layout['x2'], layout['x3']])
+    #y = np.concatenate([layout['y1'], layout['y2'], layout['y3']])
+    x = np.concatenate(xlist)
+    y = np.concatenate(ylist)
+    #xi = np.repeat([0., 0.5, 1.], len(layout))
+    xi = np.repeat([-1.5, 0., 1.5, 6.0, 13.5], len(layout))  # TODO: Values from elsewhere
+    lam = np.tile(layout['lam'], len(xlist))
 
     pinit_xi = models.Polynomial2D(degree=4)
     pinit_lam = models.Polynomial2D(degree=4)
