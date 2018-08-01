@@ -310,21 +310,21 @@ def xilam2xy_fit(layout):
     '''
     from astropy.modeling import models, fitting
 
+    xilist = []
     xlist = []
     ylist = []
     for key in layout.colnames:
-        if key[0] == 'x':
+        if key[:2] == 'xi':
+            xilist.append(layout[key])
+        elif key[:1] == 'x':
             xlist.append(layout[key])
-        if key[0] == 'y':
+        elif key[:1] == 'y':
             ylist.append(layout[key])
 
-    #x = np.concatenate([layout['x1'], layout['x2'], layout['x3']])
-    #y = np.concatenate([layout['y1'], layout['y2'], layout['y3']])
+    xi = np.concatenate(xilist)
+    lam = np.tile(layout['lam'], len(xlist))
     x = np.concatenate(xlist)
     y = np.concatenate(ylist)
-    #xi = np.repeat([0., 0.5, 1.], len(layout))
-    xi = np.repeat([-1.5, 0., 1.5, 6.0, 13.5], len(layout))  # TODO: Values from elsewhere
-    lam = np.tile(layout['lam'], len(xlist))
 
     pinit_x = models.Polynomial2D(degree=4)
     pinit_y = models.Polynomial2D(degree=4)
@@ -341,22 +341,22 @@ def xy2xilam_fit(layout):
 
     Fits are of degree 4 as a function of focal plane position'''
     from astropy.modeling import models, fitting
-
+    xilist = []
     xlist = []
     ylist = []
     for key in layout.colnames:
-        if key[0] == 'x':
+        if key[:2] == 'xi':
+            xilist.append(layout[key])
+        elif key[:1] == 'x':
             xlist.append(layout[key])
-        if key[0] == 'y':
+        elif key[:1] == 'y':
             ylist.append(layout[key])
 
-    #x = np.concatenate([layout['x1'], layout['x2'], layout['x3']])
-    #y = np.concatenate([layout['y1'], layout['y2'], layout['y3']])
+
+    xi = np.concatenate(xilist)
+    lam = np.tile(layout['lam'], len(xlist))
     x = np.concatenate(xlist)
     y = np.concatenate(ylist)
-    #xi = np.repeat([0., 0.5, 1.], len(layout))
-    xi = np.repeat([-1.5, 0., 1.5, 6.0, 13.5], len(layout))  # TODO: Values from elsewhere
-    lam = np.tile(layout['lam'], len(xlist))
 
     pinit_xi = models.Polynomial2D(degree=4)
     pinit_lam = models.Polynomial2D(degree=4)
