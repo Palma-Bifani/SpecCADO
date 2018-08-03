@@ -155,15 +155,16 @@ class XiLamImage(object):
 
         # Create a wcs for the slit
         # Note that the xi coordinates are excentric for the 16 arcsec slit
-        x1 = -1.5
+        # TODO: Replace by layout['xi1'] -- but we don't have layout here?
+        xi1 = -1.5
         slitwcs = WCS(naxis=2)
         slitwcs.wcs.ctype = ['LINEAR', 'LINEAR']
         slitwcs.wcs.cunit = psf.wcs.wcs.cunit
-        slitwcs.wcs.crval = [-1.5, 0]
+        slitwcs.wcs.crval = [xi1, 0]
         slitwcs.wcs.crpix = [1, 1 + eta_cen]
         slitwcs.wcs.cdelt = [delta_xi, delta_eta]
 
-        xi_cen = -x1 / delta_xi
+        xi_cen = -xi1 / delta_xi   # TODO: not correct in general
 
         ## Loop over all sources
         for curspec in src.spectra:
@@ -248,6 +249,10 @@ class XiLamImage(object):
         self.wcsa.wcs.cname = ['WAVELEN', 'SLITPOS']
         self.wcsa.wcs.cunit = ['um', '']
 
+        # TODO: this might be a place to restrict to the short slit
+        #       The previous interpolation should be done on the long slit,
+        #       actual image construction and interpolation only on relevant
+        #       part of the slit
         self.xi = self.wcs.all_pix2world(lam[0], np.arange(npix_xi), 0)[1]
         self.lam = lam
         self.npix_xi = npix_xi

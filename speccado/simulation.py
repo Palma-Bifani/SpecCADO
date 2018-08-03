@@ -160,7 +160,8 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
             jmin = (ymin - pix_edges_y[0]) / pixsize
 
             # number of fractional images covered - need to pad to integer
-            n_i = np.ceil(imax - imin).astype(np.int)
+            n_i = min(np.ceil(imax - imin).astype(np.int),
+                      chip.naxis1)
             n_j = nchiplines
 
             # Range in pixels : i
@@ -168,7 +169,7 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
             iend = istart + n_i
             if iend > chip.naxis1:
                 iend = chip.naxis1
-                istart = iend - n_i
+                istart = max(iend - n_i, 0)
 
             # Range in pixels : j (should be jstart = chip_j1, jend = chip_j2)
             jstart = max(0, np.floor(jmin).astype(np.int))
@@ -204,7 +205,7 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
                            astype(np.float32))
 
                 # Mask everything outside the slit
-                mask = (XI_fpa >= 0) & (XI_fpa <= 1.)
+                mask = (XI_fpa >= xi[0]) & (XI_fpa <= xi[-1])
                 XI_fpa *= mask
                 LAM_fpa *= mask
 
