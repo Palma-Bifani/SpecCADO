@@ -108,8 +108,8 @@ class XiLamImage(object):
     the spatial slit direction) and wavelength lambda.
     '''
 
-    def __init__(self, src, psf, lam_min, lam_max, dlam_per_pix, cmds,
-                 transmission):
+    def __init__(self, src, psf, lam_min, lam_max, xi_min,
+                 dlam_per_pix, cmds, transmission):
 
         # Slit dimensions: oversample with respect to detector pixel scale
         pixscale = cmds['SIM_DETECTOR_PIX_SCALE']  # arcsec/detector pixel
@@ -131,10 +131,11 @@ class XiLamImage(object):
         # Slit length. Input in arcsec. The slit image has npix_xi pixels
         # in the length direction, as does the xilam image.
         slit_length_as = cmds['SPEC_SLIT_LENGTH']
+        xi_max = xi_min + slit_length_as
         npix_xi = np.int(slit_length_as / delta_xi)
 
         # pixel coordinates of slit centre
-        xi_cen = npix_xi / 2 - 0.5    # TODO: is this useful? or rather xi=0?
+        xi_cen = -xi_min / delta_xi
         eta_cen = npix_eta / 2 - 0.5
 
         # Step in wavelength, oversample at least 5 times with respect
@@ -155,16 +156,12 @@ class XiLamImage(object):
 
         # Create a wcs for the slit
         # Note that the xi coordinates are excentric for the 16 arcsec slit
-        # TODO: Replace by layout['xi1'] -- but we don't have layout here?
-        xi1 = -1.5
         slitwcs = WCS(naxis=2)
         slitwcs.wcs.ctype = ['LINEAR', 'LINEAR']
         slitwcs.wcs.cunit = psf.wcs.wcs.cunit
-        slitwcs.wcs.crval = [xi1, 0]
+        slitwcs.wcs.crval = [xi_min, 0]
         slitwcs.wcs.crpix = [1, 1 + eta_cen]
         slitwcs.wcs.cdelt = [delta_xi, delta_eta]
-
-        xi_cen = -xi1 / delta_xi   # TODO: not correct in general
 
         ## Loop over all sources
         for curspec in src.spectra:
@@ -177,8 +174,6 @@ class XiLamImage(object):
                 srcpos = curspec.srcpos
                 scale = 1   # TODO: generalise
                 angle = 0   # TODO: generalise
-
-                slit_image = np.zeros((npix_eta, npix_xi), dtype=np.float32)
 
                 # Build a WCS that allows mapping the source to the slit
                 mapwcs = WCS(naxis=2)
@@ -226,19 +221,17 @@ class XiLamImage(object):
 
         slithdul.writeto("slitimages.fits", overwrite=True)
 
-        ## Default WCS with xi in arcsec from -1.5 to 13.5
-        ## TODO: Make this default
-        x1 = -1.5   # Take from elsewhere
+        ## WCS for the xi-lambda-image, i.e. the rectified 2D spectrum
+        ## Default WCS with xi in arcsec from xi_min (-1.5)
         self.wcs = WCS(naxis=2)
         self.wcs.wcs.crpix = [1, 1]
-        self.wcs.wcs.crval = [lam[0], x1]
+        self.wcs.wcs.crval = [lam[0], xi_min]
         self.wcs.wcs.pc = [[1, 0], [0, 1]]
-        self.wcs.wcs.cdelt = [delta_lam, delta_xi]  #
+        self.wcs.wcs.cdelt = [delta_lam, delta_xi]
         self.wcs.wcs.ctype = ['LINEAR', 'LINEAR']
         self.wcs.wcs.cname = ['WAVELEN', 'SLITPOS']
         self.wcs.wcs.cunit = ['um', 'arcsec']
 
-        ## WCS for the xi-lambda-image, i.e. the rectified 2D spectrum
         ## Alternative : xi = [0, 1], dimensionless
         self.wcsa = WCS(naxis=2)
         self.wcsa.wcs.crpix = [1, 1]
@@ -249,10 +242,6 @@ class XiLamImage(object):
         self.wcsa.wcs.cname = ['WAVELEN', 'SLITPOS']
         self.wcsa.wcs.cunit = ['um', '']
 
-        # TODO: this might be a place to restrict to the short slit
-        #       The previous interpolation should be done on the long slit,
-        #       actual image construction and interpolation only on relevant
-        #       part of the slit
         self.xi = self.wcs.all_pix2world(lam[0], np.arange(npix_xi), 0)[1]
         self.lam = lam
         self.npix_xi = npix_xi

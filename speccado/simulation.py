@@ -85,7 +85,7 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
             lam_range = lam_max - lam_min
             lam_max += 0.3 * lam_range
             lam_min -= 0.3 * lam_range
-            xcen = spectrace.xilam2x(0.5, (lam_min + lam_max) / 2)
+            xcen = spectrace.xilam2x(0., (lam_min + lam_max) / 2)
             message(spectrace.name + ":", indent)
             indent += "    "
             message("lam_min: " + str(lam_min), indent)
@@ -96,8 +96,10 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
             # TODO: use array instead of mean value
             dlam_per_pix = spectrace.dlam_by_dy(xcen,
                                                 (ymin + ymax) / 2) * pixsize
+            xi_min = spectrace.layout['xi1'].min()
             try:
-                xilam = XiLamImage(src, psf, lam_min, lam_max, dlam_per_pix,
+                xilam = XiLamImage(src, psf, lam_min, lam_max,
+                                   xi_min, dlam_per_pix,
                                    cmds, transmission)
             except ValueError:
                 message(" ---> " + spectrace.file + "[" + spectrace.name +
@@ -126,6 +128,7 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
             # These are needed to determine xmin, xmax, ymin, ymax
             xlims = spectrace.xilam2x(xi[[0, -1, -1, 0]], lam[[0, 0, -1, -1]])
             if xlims.max() < chip.xmin_um or xlims.min() > chip.xmax_um:
+                indent = indent[:-4]
                 continue
             else:
                 xmax = min(xlims.max(), chip.xmax_um)
