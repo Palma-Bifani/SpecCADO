@@ -76,13 +76,19 @@ def is_order_in_field(spectrace, chip):
     return np.any((xcorner > xlo) * (xcorner <= xhi))
 
 
-def rectify_trace(tracefile, chiplist, params):
-    '''Create 2D spectrum for a trace'''
+def rectify_trace(trace, chiplist, params):
+    '''Create 2D spectrum for a trace
 
-    print("Working on ", tracefile)
-    trace = SpectralTrace(tracefile)
+    Parameters
+    ----------
 
-    filebase = splitext(basename(tracefile))[0]
+    trace : object of class SpectralTrace
+    chiplist : list of SpecChip objects
+    params : parameter dictionary (required: pixsize, pixscale, slit_length)
+
+'''
+
+    filebase = splitext(basename(trace.name))[0]
 
     # Check whether the trace is on any chips at all
     goodchips = []
