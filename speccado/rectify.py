@@ -86,6 +86,10 @@ def rectify_trace(trace, chiplist, params):
     chiplist : list of SpecChip objects
     params : parameter dictionary (required: pixsize, pixscale, slit_length)
 
+    Output
+    ------
+    The function writes a FITS file with the rectified spectrum.
+
 '''
 
     filebase = splitext(basename(trace.name))[0]
@@ -162,5 +166,6 @@ def rectify_trace(trace, chiplist, params):
         specpart = chip.interp(jarr, iarr, grid=False)
         rect_spec += specpart * mask
 
+    print("Writing", filebase + ".fits")
     fits.writeto(filebase + ".fits", rect_spec, header=wcs.to_header(),
                  overwrite=True)
