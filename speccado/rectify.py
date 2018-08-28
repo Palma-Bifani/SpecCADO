@@ -109,17 +109,22 @@ def rectify_trace(trace, chiplist, params):
     dlam_pix = dlam_min * params['pixsize']
 
     # image size
-    n_xi = int(params['slit_length'] / params['pixscale'])
-    d_xi = 1./ n_xi
+    xi_min = trace.layout['xi1'].min()
+    delta_xi = params['pixscale']
+    n_xi = int(params['slit_length'] / delta_xi)
     n_lam = int((lam_max - lam_min) / dlam_pix)
 
+
     ## WCS for the rectified spectrum
+    ## TODO: Convert xi to arcsec
+    ## TODO: Define xi_min and delta_xi
     wcs = WCS(naxis=2)
     wcs.wcs.ctype = ['LINEAR', 'WAVE']
-    wcs.wcs.cunit = ['', 'um']
+    wcs.wcs.cname = ['SLITPOS', 'WAVELEN']
+    wcs.wcs.cunit = ['arcsec', 'um']
     wcs.wcs.crpix = [1, 1]
-    wcs.wcs.crval = [0, lam_min]
-    wcs.wcs.cdelt = [d_xi, dlam_pix]
+    wcs.wcs.crval = [xi_min, lam_min]
+    wcs.wcs.cdelt = [delta_xi, dlam_pix]
 
     ## Now I could create Xi, Lam images
     Iarr, Jarr = np.meshgrid(np.arange(n_xi, dtype=np.float32),
