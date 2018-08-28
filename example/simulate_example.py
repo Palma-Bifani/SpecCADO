@@ -29,6 +29,7 @@ def main():
     cmds = sim.UserCommands('spectro_IJ.config')
 
     # Optionally set some parameters explicitely.
+    cmds['SPEC_ORDER_LAYOUT'] = "specorders-160904.fits"
     cmds['OBS_EXPTIME'] = 60
     cmds['FPA_LINEARITY_CURVE'] = 'none'
 
@@ -66,9 +67,7 @@ def main():
                             bounds_error=False, fill_value=0.)
 
     ## Prepare the order descriptions
-    #layoutlist = glob.glob("?_?.TXT")
-    layoutfile = 'specorders-160904.fits'
-    tracelist = sc.layout.read_spec_order(layoutfile)
+    tracelist = sc.layout.read_spec_order(cmds['SPEC_ORDER_LAYOUT'])
 
     #    tracelist = list()
     #for lfile in layoutlist:
