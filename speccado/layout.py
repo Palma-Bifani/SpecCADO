@@ -98,7 +98,16 @@ class SpectralTrace(object):
         try:
             self.name = self.layout.meta['EXTNAME']
         except KeyError:
-            self.name = filename + '[' + hdu + ']'
+            self.name = layoutfile + '[' + hdu + ']'
+
+    def __str__(self):
+        objtype = type(self).__name__
+        name = self.name
+        lam_min = self.layout['lam'].min()
+        lam_max = self.layout['lam'].max()
+        lam_unit = self.layout['lam'].unit.name
+        template = "{} '{}': {:.2f} - {:.2f} {}"
+        return template.format(objtype, name, lam_min, lam_max, lam_unit)
 
 
 class XiLamImage(object):
