@@ -1,4 +1,6 @@
 '''Functions and classes relating to spectroscopic layout'''
+import os
+
 import numpy as np
 from scipy.interpolate import RectBivariateSpline
 
@@ -116,6 +118,113 @@ class SpectralTrace(object):
         dlam_min = np.min(self.dlam_by_dy(self.layout['x2'],
                                           self.layout['y2']))
         return lam_min, lam_max, dlam_min
+
+
+    def write_reg(self, filename=None, append=False, slit_length=None,
+                  waveband=None):
+        '''Write a regions file for ds9
+
+        The regions file uses focal plane coordinates and has to be loaded
+        with WCSA ("PIX2FP") of a SimCADO-produced image.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the regions file to write. If `None`, the filename
+            is constructed from the name of the trace.
+        append : boolean
+            If `True` and `filename` exists, then the region for the trace
+            is appended to the file. Otherwise, a new file is created (or
+            the existing file is overwritten).
+        slit_length : length of the slit in arcsec
+            If "None", the full extent of the layout table is used.
+        waveband : str or tuple of floats
+            Name of order-sorting filter or limits of the wavelength range
+            to consider (in um)
+        '''
+        # Header line for regions file
+        headline = '''# Region file format: DS9 version 4.1
+global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1
+wcsa;
+'''
+        print(str(self))
+
+        # Reformat the layout table
+        # Note: This is redundant as it occurs in the fitting functions, too
+        xilist = []
+        xlist = []
+        ylist = []
+        for key in self.layout.colnames:
+            if key[:2] == 'xi':
+                xilist.append(self.layout[key])
+            elif key[:1] == 'x':
+                xlist.append(self.layout[key])
+            elif key[:1] == 'y':
+                ylist.append(self.layout[key])
+
+        xi = np.concatenate(xilist)
+        lam = np.tile(self.layout['lam'], len(xlist))
+        xall = np.concatenate(xlist)
+        yall = np.concatenate(ylist)
+
+        full_length = xi.max() - xi.min()
+        if slit_length is not None:
+            frac = slit_length / full_length
+        else:
+            frac = 1
+
+        # Wavelength limits: If no waveband has been specified, plot the
+        # full trace. Otherwise cut to desired limits.
+        if waveband is None:
+            lam_min = lam.min()
+            lam_max = lam.max()
+        else:
+            if isinstance(waveband, tuple):
+                lam_min, lam_max = waveband
+            else:
+                order_sort = sim.spectral.TransmissionCurve(waveband)
+                os_mask = order_sort.val_orig > 0
+                lam_min = order_sort.lam_orig[os_mask].min()
+                lam_max = order_sort.lam_orig[os_mask].max()
+
+            # Check whether the trace is in the desired waveband
+            # and find the closest value in lam to these limits
+            if lam_min > lam.max() or lam_max < lam.min():
+                print("   --> outside wavelength range.")
+                return
+            else:
+                templam = self.layout['lam']
+                lam_min = templam[np.abs(templam - lam_min).argmin()]
+                lam_max = templam[np.abs(templam - lam_max).argmin()]
+
+        # Limits of the trace x_ij, y_ij in the focal plane.
+        # The right edge (j=2) is interpolated for the desired slitlength
+        x_11 = xall[lam == lam_min].min()
+        x_12 = x_11 + frac * (xall[lam == lam_min].max() - x_11)
+        y_11 = yall[lam == lam_min].min()
+        y_12 = y_11 + frac * (yall[lam == lam_min].max() - y_11)
+
+        x_21 = xall[lam == lam_max].min()
+        x_22 = x_21 + frac * (xall[lam == lam_max].max() - x_21)
+        y_21 = yall[lam == lam_max].min()
+        y_22 = y_21 + frac * (yall[lam == lam_max].max() - y_21)
+
+        polygon = "polygon({},{},{},{},{},{},{},{})\n".format(x_11, y_11,
+                                                              x_12, y_12,
+                                                              x_22, y_22,
+                                                              x_21, y_21)
+
+        if filename is None:
+            filename = os.path.splitext(self.name)[0] + ".reg"
+
+        if not (os.path.exists(filename) and append):
+            fp1 = open(filename, 'w')
+            fp1.write(headline)
+        else:
+            fp1 = open(filename, 'a')
+
+        fp1.write(polygon)
+        fp1.close()
 
 
 class XiLamImage(object):
