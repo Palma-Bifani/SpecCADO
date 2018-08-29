@@ -109,6 +109,14 @@ class SpectralTrace(object):
         template = "{} '{}': {:.2f} - {:.2f} {}"
         return template.format(objtype, name, lam_min, lam_max, lam_unit)
 
+    def analyse_lambda(self):
+        '''Get a few numbers describing the extent of a trace'''
+        lam_min = np.min(self.layout['lam'])
+        lam_max = np.max(self.layout['lam'])
+        dlam_min = np.min(self.dlam_by_dy(self.layout['x2'],
+                                          self.layout['y2']))
+        return lam_min, lam_max, dlam_min
+
 
 class XiLamImage(object):
     '''Class to compute a rectified 2D spectrum.
@@ -392,14 +400,6 @@ def is_order_on_chip(spectrace, chip, ylo=None, yhi=None):
 
     return np.any((xcorner > xlo) * (xcorner <= xhi))
 
-
-def analyse_trace(trace):
-    '''Get a few numbers describing the extent of a trace'''
-    lam_min = np.min(trace.layout['lam'])
-    lam_max = np.max(trace.layout['lam'])
-    dlam_min = np.min(trace.dlam_by_dy(trace.layout['x2'],
-                                       trace.layout['y2']))
-    return lam_min, lam_max, dlam_min
 
 
 def read_spec_order(filename, ext=0):

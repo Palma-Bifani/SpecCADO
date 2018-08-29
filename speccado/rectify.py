@@ -7,7 +7,7 @@ from scipy.interpolate import RectBivariateSpline
 from astropy.io import fits
 from astropy.wcs import WCS
 from astropy import units as u
-from .layout import SpectralTrace, analyse_trace
+from .layout import SpectralTrace
 
 class SpecChip(object):
     '''Class holding information about a chip readout
@@ -104,7 +104,7 @@ def rectify_trace(trace, chiplist, params):
         return None
 
     # Build the xi-lambda image for this trace
-    lam_min, lam_max, dlam_min = analyse_trace(trace)
+    lam_min, lam_max, dlam_min = trace.analyse_lambda()
     print("   extends from ", lam_min, " to ", lam_max)
     dlam_pix = dlam_min * params['pixsize']
 
