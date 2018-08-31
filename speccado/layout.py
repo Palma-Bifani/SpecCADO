@@ -152,26 +152,15 @@ wcsa;
         # Reformat the layout table
         # Note: This is redundant as it occurs in the fitting functions, too
         xilist = []
-        xlist = []
-        ylist = []
         for key in self.layout.colnames:
             if key[:2] == 'xi':
                 xilist.append(self.layout[key])
-            elif key[:1] == 'x':
-                xlist.append(self.layout[key])
-            elif key[:1] == 'y':
-                ylist.append(self.layout[key])
 
         xi = np.concatenate(xilist)
-        lam = np.tile(self.layout['lam'], len(xlist))
-        xall = np.concatenate(xlist)
-        yall = np.concatenate(ylist)
+        lam = self.layout['lam']
 
-        full_length = xi.max() - xi.min()
-        if slit_length is not None:
-            frac = slit_length / full_length
-        else:
-            frac = 1
+        xi_min = xi.min()
+        xi_max = xi_min + slit_length
 
         # Wavelength limits: If no waveband has been specified, plot the
         # full trace. Otherwise cut to desired limits.
@@ -198,16 +187,17 @@ wcsa;
                 lam_max = templam[np.abs(templam - lam_max).argmin()]
 
         # Limits of the trace x_ij, y_ij in the focal plane.
-        # The right edge (j=2) is interpolated for the desired slitlength
-        x_11 = xall[lam == lam_min].min()
-        x_12 = x_11 + frac * (xall[lam == lam_min].max() - x_11)
-        y_11 = yall[lam == lam_min].min()
-        y_12 = y_11 + frac * (yall[lam == lam_min].max() - y_11)
+        x_11 = self.xilam2x(xi_min, lam_min)
+        x_12 = self.xilam2x(xi_max, lam_min)
 
-        x_21 = xall[lam == lam_max].min()
-        x_22 = x_21 + frac * (xall[lam == lam_max].max() - x_21)
-        y_21 = yall[lam == lam_max].min()
-        y_22 = y_21 + frac * (yall[lam == lam_max].max() - y_21)
+        y_11 = self.xilam2y(xi_min, lam_min)
+        y_12 = self.xilam2y(xi_max, lam_min)
+
+        x_21 = self.xilam2x(xi_min, lam_max)
+        x_22 = self.xilam2x(xi_max, lam_max)
+
+        y_21 = self.xilam2y(xi_min, lam_max)
+        y_22 = self.xilam2y(xi_max, lam_max)
 
         polygon = "polygon({},{},{},{},{},{},{},{})\n".format(x_11, y_11,
                                                               x_12, y_12,
@@ -257,7 +247,6 @@ class XiLamImage(object):
         # Slit length. Input in arcsec. The slit image has npix_xi pixels
         # in the length direction, as does the xilam image.
         slit_length_as = cmds['SPEC_SLIT_LENGTH']
-        xi_max = xi_min + slit_length_as
         npix_xi = np.int(slit_length_as / delta_xi)
 
         # pixel coordinates of slit centre
