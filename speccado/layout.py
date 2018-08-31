@@ -430,6 +430,7 @@ def xilam2xy_fit(layout):
     '''
     from astropy.modeling import models, fitting
 
+    # Build full lists (distinction in x1...x5 not necessary)
     xilist = []
     xlist = []
     ylist = []
@@ -446,6 +447,14 @@ def xilam2xy_fit(layout):
     x = np.concatenate(xlist)
     y = np.concatenate(ylist)
 
+    # Filter the lists: remove any points with x==0
+    good = x != 0
+    xi = xi[good]
+    lam = lam[good]
+    x = x[good]
+    y = y[good]
+
+    # compute the fits
     pinit_x = models.Polynomial2D(degree=4)
     pinit_y = models.Polynomial2D(degree=4)
     fitter = fitting.LinearLSQFitter()
@@ -461,6 +470,8 @@ def xy2xilam_fit(layout):
 
     Fits are of degree 4 as a function of focal plane position'''
     from astropy.modeling import models, fitting
+
+    # Build full lists (distinction in x1...x5 not necessary)
     xilist = []
     xlist = []
     ylist = []
@@ -472,11 +483,17 @@ def xy2xilam_fit(layout):
         elif key[:1] == 'y':
             ylist.append(layout[key])
 
-
     xi = np.concatenate(xilist)
     lam = np.tile(layout['lam'], len(xlist))
     x = np.concatenate(xlist)
     y = np.concatenate(ylist)
+
+    # Filter the lists: remove any points with x==0
+    good = x != 0
+    xi = xi[good]
+    lam = lam[good]
+    x = x[good]
+    y = y[good]
 
     pinit_xi = models.Polynomial2D(degree=4)
     pinit_lam = models.Polynomial2D(degree=4)
