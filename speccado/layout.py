@@ -112,7 +112,15 @@ class SpectralTrace(object):
         return template.format(objtype, name, lam_min, lam_max, lam_unit)
 
     def analyse_lambda(self):
-        '''Get a few numbers describing the extent of a trace'''
+        '''Get a few numbers describing the extent of a trace
+
+        Returns
+        -------
+        a tuple with (`lam_min`, `lam_max`, `dlam_min`):
+        lam_min : minimum wavelength covered by the trace
+        lam_max : maximum wavelength covered by the trace
+        dlam_min : minimum dispersion in wavelength range, in um/mm
+        '''
         lam_min = np.min(self.layout['lam'])
         lam_max = np.max(self.layout['lam'])
         dlam_min = np.min(self.dlam_by_dy(self.layout['x2'],
