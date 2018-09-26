@@ -1,3 +1,5 @@
+from .version import version as __version__
+
 from .source import *
 from .utils import *
 from .psf import *
