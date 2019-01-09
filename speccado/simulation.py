@@ -146,7 +146,7 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
             # TODO: Is oversampling necessary with spline interpolation?
             if cmds['SPEC_INTERPOLATION'] == 'nearest':
                 osample_x = 2
-                osample_y = np.int(image.shape[1] / nchiplines)
+                osample_y = np.int(xilam_img.shape[1] / nchiplines)
             else:
                 osample_x = 1
                 osample_y = 1
