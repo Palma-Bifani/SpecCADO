@@ -10,6 +10,10 @@ or
 ```sh
 pip install --user .
 ```
+within the unpacked speccado directory.
+
+If `pip` and `python` point to a python-2.7 installation, please try
+the commands `pip3` and `python3` instead.
 
 The directory `example/` includes a script to demonstrate how to use SpecCADO. Run it by doing
 ```sh
@@ -36,3 +40,10 @@ The following python packages are needed to run SpecCADO:
 * astropy
 * numpy
 * scipy
+
+You can check which versions of these packages, if any, you have
+installed by running
+```
+>>> speccado.bug_report()
+```
+Please always include the output of this command when reporting bugs.
