@@ -4,7 +4,11 @@ SpecCADO is a prototype for the spectroscopic mode in SimCADO, the instrument da
 
 Install the package by doing
 ```sh
-python setup.py install
+pip install .
+```
+or
+```sh
+pip install --user .
 ```
 
 The directory `example/` includes a script to demonstrate how to use SpecCADO. Run it by doing
