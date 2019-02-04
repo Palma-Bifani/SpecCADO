@@ -1,7 +1,7 @@
 # Transmission curve for IJ order sorting filter
 # Based on ELT-TRE-MCD-56300-0014, v1.0 (24.02.2017)
 #
-# Updated based on ELT-TRE-MCD-56300-0076_v1 (04.02.2019)
+# Updated based on ELT-TRE-MCD-56300-0014_2.0 (04.02.2019)
 # Wavelength(micron)    Throughput
             0.72            0
             0.73            0
@@ -15,7 +15,7 @@
             0.81            0
             0.82            0
             0.83            0
-            0.84            1
+            0.84            0
             0.85            1
             0.86            1
             0.87            1
@@ -76,9 +76,9 @@
             1.42            1
             1.43            1
             1.44            1
-            1.45            1
-            1.46            1
-            1.47            1
-            1.48            1
+            1.45            0.5
+            1.46            0
+            1.47            0
+            1.48            0
             1.49            0
             1.50            0

@@ -1,6 +1,6 @@
 # Transmission curve for HK order sorting filter
 # Based on ELT-TRE-MCD-56300-0014, v1.0 (24.02.2017)
-# Update based on ELT-TRE-MCD-56300-0076_v1 (04.02.2019)
+# Update based on ELT-TRE-MCD-56300-0014_2.0 (04.02.2019)
 # Wavelength(micron)    Throughput
             1.35            0
             1.36            0
@@ -12,9 +12,9 @@
             1.42            0
             1.43            0
             1.44            0
-            1.45            0
-            1.46            0
-            1.47            0
+            1.45            0.5
+            1.46            1
+            1.47            1
             1.48            1
             1.49            1
             1.50            1
@@ -112,8 +112,8 @@
             2.42            1
             2.43            1
             2.44            1
-            2.45            1
-            2.46            1
+            2.45            0.5
+            2.46            0
             2.47            0
             2.48            0
             2.49            0
