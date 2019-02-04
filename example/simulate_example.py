@@ -1,32 +1,27 @@
 '''Example script for SimCADO spectroscopy mode'''
 
-import glob
-
-import datetime
-
-import numpy as np
+import sys
 
 from scipy.interpolate import interp1d
-from scipy.interpolate import RectBivariateSpline
-
-from astropy.io import fits
-from astropy.wcs import WCS
-from astropy import units as u
-from astropy import constants as c
 
 import simcado as sim
 import speccado as sc
 
 
 ##################### MAIN ####################
-def main():
+def main(configfile, sim_data_dir=None):
     '''Main function
 
     Define source components, commands, psf, detector, etc. here
+
+    Parameters
+    ----------
+    configfile : [str]
+    sim_data_dir : SimCADO data directory (None, if defined in configfile)
     '''
     ## Commands to control the simulation
-    #cmds = sim.UserCommands('spectro_HK.config')
-    cmds = sim.UserCommands('spectro_IJ.config')
+    print("Config file: ", configfile)
+    cmds = sim.UserCommands(configfile, sim_data_dir)
 
     # Optionally set some parameters explicitely.
     cmds['SPEC_ORDER_LAYOUT'] = "specorders-160904.fits"
@@ -79,4 +74,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) < 2:
+        print("Usage:\n   sys,argv[0] configfile <sim_data_dir>")
+    elif len(sys.argv) == 2:
+        main(sys.argv[1])
+    else:
+        main(sys.argv[1], sys.argv[2])
