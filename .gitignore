@@ -16,3 +16,6 @@ speccado/version.py
 
 # emacs backup files
 *~
+
+# simcado log
+simcado.log
