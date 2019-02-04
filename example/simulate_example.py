@@ -1,4 +1,16 @@
-'''Example script for SimCADO spectroscopy mode'''
+'''Example script for SimCADO spectroscopy mode
+
+Call
+----
+    python simulate_example configfile <sim_data_dir>
+
+Command line parameters
+-----------------------
+configfile : File with SimCADO and SpecCADO configuration parameters
+
+sim_data_dir : Path to the directory where SimCADO data are stored.
+               This can also be defined in the configfile (SIM_DATA_DIR)
+'''
 
 import sys
 
@@ -19,12 +31,12 @@ def main(configfile, sim_data_dir=None):
     configfile : [str]
     sim_data_dir : SimCADO data directory (None, if defined in configfile)
     '''
+
     ## Commands to control the simulation
     print("Config file: ", configfile)
     cmds = sim.UserCommands(configfile, sim_data_dir)
 
     # Optionally set some parameters explicitely.
-    cmds['SPEC_ORDER_LAYOUT'] = "specorders-160904.fits"
     cmds['OBS_EXPTIME'] = 60
     cmds['FPA_LINEARITY_CURVE'] = 'none'
 
@@ -44,7 +56,7 @@ def main(configfile, sim_data_dir=None):
     srcobj = sc.SpectralSource(cmds, specfiles, sourcepos, bgfiles)
 
     ## Load the psf
-    psfobj = sc.prepare_psf("PSF_SCAO_120.fits")
+    psfobj = sc.prepare_psf(cmds['SCOPE_PSF_FILE'])
 
     # Create detector
     detector = sim.Detector(cmds, small_fov=False)
