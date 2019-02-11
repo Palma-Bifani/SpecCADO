@@ -286,6 +286,12 @@ class XiLamImage(object):
         slitwcs.wcs.crpix = [1, 1 + eta_cen]
         slitwcs.wcs.cdelt = [delta_xi, delta_eta]
 
+        # Compute atmospheric refraction
+        # TODO: Parameters from config file
+        lam_ref = cmds['SPEC_LAM_PIVOT']
+        ads0 = atmospheric_refraction(lam_ref, z0=30)
+        ads = atmospheric_refraction(lam, z0=30) - ads0
+
         ## Loop over all sources
         for curspec in src.spectra:
             wcs_spec = curspec.wcs
@@ -336,6 +342,9 @@ class XiLamImage(object):
             ## width (i.e. convolution with the slit profile) and added to the
             ## xi-lambda image.
             ## TODO: Check what is happening to the units here!
+            ## TODO: outer multiplication only works for background spectra.
+            ##       For sources, we need to build the cube explicitely in order to take ADS
+            ##       into account.
             for i in range(npix_eta):
                 lam0 = lam - slit_width_lam / 2 + i * dlam_eta
                 nimage = np.outer(slit_image[i,], flux_interp(lam0)
