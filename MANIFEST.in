@@ -1,1 +1,3 @@
-include example/*
+include example/
+prune example/simcado.log
+prune speccado.egg-info
