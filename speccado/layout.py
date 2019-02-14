@@ -286,12 +286,6 @@ class XiLamImage(object):
         slitwcs.wcs.crpix = [1, 1 + eta_cen]
         slitwcs.wcs.cdelt = [delta_xi, delta_eta]
 
-        # Compute atmospheric refraction
-        # TODO: Parameters from config file
-        lam_ref = cmds['SPEC_LAM_PIVOT']
-        ads0 = atmospheric_refraction(lam_ref, z0=30)
-        ads = atmospheric_refraction(lam, z0=30) - ads0
-
         ## Loop over all sources
         for curspec in src.spectra:
             wcs_spec = curspec.wcs
