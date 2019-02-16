@@ -40,8 +40,8 @@ def bug_report():
     except ImportError:
         import_module = __import__
 
-    packages = ["speccado", "simcado", "astropy", "numpy", "scipy",
-                "poppy", "wget"]
+    packages = ["speccado", "simcado", "astropy", "synphot", "numpy",
+                "scipy", "poppy", "wget"]
 
     # Check Python version
     print("Python:\n", sys.version)
