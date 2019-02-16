@@ -33,6 +33,9 @@ simcado.log
 *.toc
 *.xdy
 *.listing
+*.bbl
+*.blg
+*.brf
 
 # tikz results (should be in figures/)
 tikz/*.pdf
