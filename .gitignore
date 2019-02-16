@@ -16,6 +16,29 @@ speccado/version.py
 
 # emacs backup files
 *~
+auto/
 
 # simcado log
 simcado.log
+
+# LaTeX output
+*.aux
+*.bcf
+*.lot
+*.glo
+*.lof
+*.log
+*.out
+*.run.xml
+*.toc
+*.xdy
+*.listing
+
+# tikz results (should be in figures/)
+tikz/*.pdf
+
+# svg converted to pdf (should be in figures/)
+svg/*.pdf
+
+# our own pdf file
+User_Manual.pdf
