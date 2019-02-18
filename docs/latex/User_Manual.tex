@@ -160,6 +160,14 @@
 \usepackage{mathsym}
 
 \input{layout}
+\usepackage[%
+   font=small,
+   format=plain,
+   indention=1.5em,
+   labelfont={small,bf},
+   up,
+   justification=justified,
+   singlelinecheck=true]{caption}
 
 \usepackage[%
    pagebackref=true,
@@ -171,9 +179,9 @@
 \dmdTitle{SpecCADO:\\User Manual}
 \dmdDocId{}
 \dmdIssue{0.1.3}
-\dmdDate{16 February 2019}
+\dmdDate{18 February 2019}
 \dmdPreparedBy{O.\ Czoske}
-\dmdPreparedOn{2019-02-16}
+\dmdPreparedOn{2019-02-18}
 \dmdPreparedSig{}
 \dmdApprovedBy{}
 \dmdApprovedOn{}
@@ -456,8 +464,9 @@ specfiles = ['GW_Ori+9mag.fits', 'GW_Ori+9mag.fits']
 sourcepos = [[-1, 0], [1, 0]]
 \end{pyin}
 The stars are positioned 1~arcsec on either side of the centre of the
-3~arcsec slit. \TODO{Define coordinates.} \TODO{Define requirements on
-  the spectral files.}
+3~arcsec slit ($\xi=\pm 1$, $\eta=0$, as defined in
+Sect.~\ref{ssec:cube_coordinates}).  \TODO{Define requirements on the
+  spectral files.}
 
 Another list gives the background spectra. Here, only one spectrum for
 atmospheric emission is provided:
@@ -553,8 +562,17 @@ foreseen for the next release.
 
 Detector pixels are characterised by coordinates $(c, i, j)$, where
 $c$ is the number of the chip in the MICADO focal plane array
-($c=1,\dots,9$) and $i$ and $j$ are the column and row number of a
-pixel ($i, j = 1,\dots,4096$).
+($c=1,\dots,9$; see Fig.~\ref{fig:detector_layout}) and $i$ and $j$
+are the column and row number of a pixel ($i, j = 1,\dots,4096$).
+
+\begin{figure}[b]
+  \centering
+  %\subfigure
+  \resizebox{0.6\textwidth}{!}{\includegraphics{MICADO_fpa_layout}}
+  \caption{Numbering convention of the detectors in the MICADO focal
+    plane.}
+  \label{fig:detector_layout}
+\end{figure}
 
 \subsection{Focal plane coordinates}
 
@@ -615,7 +633,7 @@ $-1.5\,\mathrm{arcsec}$ to $13.5\,\mathrm{arcsec}$. The slit length to
 be used is specified by the keyword \lstinline{SPEC_SLIT_LENGTH}.
 
 \begin{figure}
-  \subfigure
+  %\subfigure
   \centering
   \resizebox{!}{0.4\textheight}{\includegraphics{spectro_cube}}
   \caption{The spectral cube $(\xi, \eta, \lambda)$, top, is sheared
@@ -665,6 +683,35 @@ broadened by the slit profile. The transformations (\ref{eq:xilam2x})
 and (\ref{eq:xilam2y}) are then applied to map the 2D spectrum into
 the focal plane and onto the detectors.
 
+
+\section{Spectral layout}
+\label{sec:spectral_layout}
+
+The panels in Fig.~\ref{fig:spectral_layout} show the spectral traces
+for the 3~arcsec slit and the three order sorting filters,
+\textit{IzJ}, \textit{J} and
+\textit{HK}. Fig.~\ref{fig:spectral_orders_wavelength} identifies the
+orders as a function of wavelength.
+
+\begin{figure}[hb]
+  \centering
+  %\subfigure
+  \resizebox{0.47\textwidth}{!}{\includegraphics{spectro_IJ_layout}}
+  \resizebox{0.47\textwidth}{!}{\includegraphics{spectro_J_layout}}\\
+  \resizebox{0.47\textwidth}{!}{\includegraphics{spectro_HK_layout}}
+  \caption{Spectral layout based on the PDR design. The slit has a
+    width of 3~arcsec on the sky.}
+  \label{fig:spectral_layout}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \resizebox{\textwidth}{!}{\includegraphics{spectral_orders_v_wavelength}}
+  \caption{Wavelength ranges covered by the spectral orders. The blue,
+    orange and green curves give the relative system transmissivities
+    for the IzJ, J and HK order sorting filters, respectively.}
+  \label{fig:spectral_orders_wavelength}
+\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
