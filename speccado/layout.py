@@ -223,7 +223,9 @@ wcsa;
 
         fp1.write(polygon)
         fp1.close()
-
+        xall = np.array([x_11, x_12, x_22, x_21])
+        yall = np.array([y_11, y_12, y_22, y_21])
+        return np.column_stack((xall, yall))
 
 class XiLamImage(object):
     '''Class to compute a rectified 2D spectrum.
