@@ -40,7 +40,7 @@ def setup_package(version):
         author_email='oliver.czoske@univie.ac.at',
         description='Prototype for SimCADO spectroscopy',
         long_description=long_description,
-        long_description_content_type="text/markdown",
+#        long_description_content_type="text/markdown",
         url="https://github.com/oczoske/SpecCADO",
         license='GPL',
         packages=['speccado'],
