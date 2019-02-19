@@ -179,9 +179,9 @@
 \dmdTitle{SpecCADO:\\User Manual}
 \dmdDocId{}
 \dmdIssue{0.1.3}
-\dmdDate{18 February 2019}
+\dmdDate{19 February 2019}
 \dmdPreparedBy{O.\ Czoske}
-\dmdPreparedOn{2019-02-18}
+\dmdPreparedOn{2019-02-19}
 \dmdPreparedSig{}
 \dmdApprovedBy{}
 \dmdApprovedOn{}
@@ -465,8 +465,7 @@ sourcepos = [[-1, 0], [1, 0]]
 \end{pyin}
 The stars are positioned 1~arcsec on either side of the centre of the
 3~arcsec slit ($\xi=\pm 1$, $\eta=0$, as defined in
-Sect.~\ref{ssec:cube_coordinates}).  \TODO{Define requirements on the
-  spectral files.}
+Sect.~\ref{ssec:cube_coordinates}).
 
 Another list gives the background spectra. Here, only one spectrum for
 atmospheric emission is provided:
@@ -530,28 +529,73 @@ This simulates chip number~4 of the MICADO array (as python arrays are
 zero-offset). The output file in this case is called
 \lstinline{chip-YYYY-MM-DDThh-mm-ss.fits}.
 
-\subsection{Changing the slit dimensions}
-\label{ssec:slit_length}
+\section{Input file format}
+\label{sec:input_format}
 
-Slit dimensions are given in arcsec as given by the projection of the
-slit onto the sky.
+\subsection{Spectra}
+\label{ssec:input_spectra}
 
-The slit length is specified by \lstinline{SPEC_SLIT_LENGTH}. The
-coordinate along the slit is defined such that the left edge of the
-slit is always at $-1.5\,\mathrm{arcsec}$. The right edge is then at
-$-1.5 + $\lstinline{SPEC_SLIT_LENGTH}. The example configuration files
-are all for the standard $3\,\mathrm{arcsec}$ slit foreseen for
-MICADO.
+Input spectra are expected to provided as one-dimensional FITS images
+(\lstinline{NAXIS = 1}). For the transformation from pixels to
+wavelengths, a WCS is required in a format that can be read by the
+\lstinline{astropy.wcs} module; this includes most formats defined by
+Greisen et al.\ (2006) \cite{Greisen2006}. To keep things simple,
+spectra sampled on a linear wavelength grid
+(\lstinline{CTYPE1='WAVE'}) are recommended. However, frequency or
+wave number grids, linear or non-linear, should be possible, if the
+WCS is constructed correctly.
 
-The slit width is given by \lstinline{SPEC_SLIT_WIDTH}. This is set to
-$0.016\,\mathrm{arcsec}$ in the example configuration files.
+As an example, the WCS of the file \lstinline{GW_Ori+9mag.fits} used
+in Sect.~\ref{sec:simulation} is
+\begin{lstlisting}
+NAXIS   =                    1 / number of array dimensions
+NAXIS1  =                24750
+WCSAXES =                    1 / Number of coordinate axes
+CRPIX1  =                  1.0 / Pixel coordinate of reference point
+CDELT1  =                6E-11 / [m] Coordinate increment at reference point
+CUNIT1  = 'm'                  / Units of coordinate increment and value
+CTYPE1  = 'WAVE'               / Vacuum wavelength (linear)
+CRVAL1  =           9.9402E-07 / [m] Coordinate value at reference point
+\end{lstlisting}
 
+The pixel values have to be in physical units and the units have to be
+provided explicitely in the \lstinline{BUNIT} keyword. SpecCADO uses
+the very flexible \lstinline{astropy.units} module to convert units:
 
-\subsection{Atmospheric dispersion}
-\label{ssec:atmospheric_dispersion}
+Input spectra for point sources can be given as photon or energy
+fluxes; internally, the units are converted to
+$\mathrm{photons}/\mathrm{s}/\mathrm{m^{2}}/\micron$.  Permitted
+values for \lstinline{BUNIT} include
+\begin{itemize}
+\item \lstinline{'erg / (Angstrom cm2 s)'}
+\item \lstinline{'ph / (um m2 s)'}
+\item \lstinline{'1 / (nm cm2 s)'}
+\end{itemize}
 
-Currently, there is no atmospheric dispersion in SpecCADO. This is
-foreseen for the next release.
+Input spectra for background sources can be given as photon or energy
+flux densities; internally, the units are converted to
+$\mathrm{photons}/\mathrm{s}/\mathrm{m^{2}}/\micron/\mathrm{arcsec^{2}}$. Permitted
+values for \lstinline{BUNIT} include
+\begin{itemize}
+\item \lstinline{'ph / (s m2 micron arcsec2)'}
+\item \lstinline{'erg / (s cm2 Angstrom arcmin2)'}
+\end{itemize}
+
+\subsection{PSFs}
+\label{ssec:input_psf}
+
+The PSF used to place point sources on the slit is provided as a FITS
+image in a format that can be read by the SimCADO \lstinline{psf}
+module.
+
+The FITS header needs to specify the (effective) wavelength at which
+the PSF applies in keyword \lstinline{WAVE0} or
+\lstinline{WAVELENG}. SimCADO requires the units to be $\micron$.
+
+In addition, the size of the pixels in the PSF image is required. This
+can be given by the keyword \lstinline{PIXSCALE} or the WCS keywords
+\lstinline{CDELT1} or \lstinline{CD1_1} (for the PSF a WCS with
+\lstinline{CTYPEi='LINEAR'} is adequate). The units are arcsec.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -624,15 +668,26 @@ alternative axis descriptor~\lstinline{A} and name
 \label{ssec:cube_coordinates}
 
 The spectral source is described as a spectroscopic cube with spatial
-coordinates $\xi$ and $\eta$ along and across the slit, respectively,
-and wavelength $\lambda$. Both $\xi$ and $\eta$ are measured in
-arcsec, based on the fixed imaging scale of MICADO. For the short slit
-of MICADO, $\xi$ runs from $-1.5\,\mathrm{arcsec}$ to
-$1.5\,\mathrm{arcsec}$, whereas for the long slit, $\xi$ runs from
-$-1.5\,\mathrm{arcsec}$ to $13.5\,\mathrm{arcsec}$. The slit length to
-be used is specified by the keyword \lstinline{SPEC_SLIT_LENGTH}.
+coordinates $\xi$ and $\eta$ along and across the slit, respectively
+(Fig.~\ref{fig:slit_coords}), and wavelength $\lambda$. Both $\xi$ and
+$\eta$ are measured in arcsec, based on the fixed imaging scale of
+MICADO. For the short slit of MICADO, $\xi$ runs from
+$-1.5\,\mathrm{arcsec}$ to $1.5\,\mathrm{arcsec}$, whereas for the
+long slit, $\xi$ runs from $-1.5\,\mathrm{arcsec}$ to
+$13.5\,\mathrm{arcsec}$. The slit length to be used can be specified
+by the keyword \lstinline{SPEC_SLIT_LENGTH}, the slit width by
+\lstinline{SPEC_SLIT_WIDTH}.
 
-\begin{figure}
+\begin{figure}[b]
+  \centering
+  \resizebox{\textwidth}{!}{\includegraphics{slit_coords}}
+  \caption{Slit coordinates $\xi$, $\eta$ along and across the slit,
+    respectively, along with the slit dimensions
+    \lstinline{SPEC_SLIT_LENGTH} and \lstinline{SPEC_SLIT_WIDTH}.}
+  \label{fig:slit_coords}
+\end{figure}
+
+\begin{figure}[b]
   %\subfigure
   \centering
   \resizebox{!}{0.4\textheight}{\includegraphics{spectro_cube}}
