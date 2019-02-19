@@ -44,4 +44,4 @@ tikz/*.pdf
 svg/*.pdf
 
 # our own pdf file
-User_Manual.pdf
+docs/latex/User_Manual.pdf
