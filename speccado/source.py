@@ -97,8 +97,8 @@ class Spectrum(object):
             elif not fluxunit.is_equivalent("ph / (m2 um arcsec2 s)"):
                 raise TypeError("Unknown units in " + specfile)
 
-            flux = flux * area_scope * exptime
-            self.fluxunit = 'ph / (um arcsec2)'
+            flux = flux * area_scope    # * exptime
+            self.fluxunit = 'ph / (s um arcsec2)'
             self.flux = flux.to(u.Unit(self.fluxunit)).value
 
         elif spectype == 'src':
@@ -108,8 +108,8 @@ class Spectrum(object):
                 flux *= u.ph
             elif not fluxunit.is_equivalent("ph / (m2 um s)"):
                 raise TypeError("Unknown units in " + specfile)
-            flux = flux * area_scope * exptime
-            self.fluxunit = 'ph / um'
+            flux = flux * area_scope    #* exptime
+            self.fluxunit = 'ph / (s um)'
             self.flux = flux.to(u.Unit(self.fluxunit)).value
 
         ## Wavelengths will be stored in microns

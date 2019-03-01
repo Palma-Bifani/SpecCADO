@@ -421,7 +421,7 @@ def trace_fit(layout, side='left', degree=1):
     pinit = Polynomial1D(degree=degree)
     fitter = LinearLSQFitter()
     edge_fit = fitter(pinit, ypt, xpt)
-    edge_fit.name = name
+    #edge_fit.name = name
     return edge_fit
 
 
@@ -461,9 +461,9 @@ def xilam2xy_fit(layout):
     pinit_y = models.Polynomial2D(degree=4)
     fitter = fitting.LinearLSQFitter()
     xilam2x = fitter(pinit_x, xi, lam, x)
-    xilam2x.name = 'xilam2x'
+    #xilam2x.name = 'xilam2x'
     xilam2y = fitter(pinit_y, xi, lam, y)
-    xilam2y.name = 'xilam2y'
+    #xilam2y.name = 'xilam2y'
     return xilam2x, xilam2y
 
 
@@ -501,9 +501,9 @@ def xy2xilam_fit(layout):
     pinit_lam = models.Polynomial2D(degree=4)
     fitter = fitting.LinearLSQFitter()
     xy2xi = fitter(pinit_xi, x, y, xi)
-    xy2xi.name = 'xy2xi'
+    #xy2xi.name = 'xy2xi'
     xy2lam = fitter(pinit_lam, x, y, lam)
-    xy2lam.name = 'xy2lam'
+    #xy2lam.name = 'xy2lam'
     return xy2xi, xy2lam
 
 
