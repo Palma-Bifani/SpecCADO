@@ -114,29 +114,33 @@ def rectify_trace(trace, chiplist, params):
     n_xi = int(params['slit_length'] / delta_xi)
     n_lam = int((lam_max - lam_min) / dlam_pix)
 
+    print("n_xi: ", n_xi)
+    print("n_lam: ", n_lam)
 
     ## WCS for the rectified spectrum
     ## TODO: Convert xi to arcsec
     ## TODO: Define xi_min and delta_xi
     wcs = WCS(naxis=2)
-    wcs.wcs.ctype = ['LINEAR', 'WAVE']
-    wcs.wcs.cname = ['SLITPOS', 'WAVELEN']
-    wcs.wcs.cunit = ['arcsec', 'um']
+    wcs.wcs.ctype = ['WAVE', 'LINEAR']
+    wcs.wcs.cname = ['WAVELEN', 'SLITPOS']
+    wcs.wcs.cunit = ['um', 'arcsec']
     wcs.wcs.crpix = [1, 1]
-    wcs.wcs.crval = [xi_min, lam_min]
-    wcs.wcs.cdelt = [delta_xi, dlam_pix]
+    wcs.wcs.crval = [lam_min, xi_min]
+    wcs.wcs.cdelt = [dlam_pix, delta_xi]
 
     ## Now I could create Xi, Lam images
-    Iarr, Jarr = np.meshgrid(np.arange(n_xi, dtype=np.float32),
-                             np.arange(n_lam, dtype=np.float32))
+    Iarr, Jarr = np.meshgrid(np.arange(n_lam, dtype=np.float32),
+                             np.arange(n_xi, dtype=np.float32))
 
-    Xi, Lam = wcs.all_pix2world(Iarr, Jarr, 0)
+    print("Iarr: ", Iarr.shape)
+    Lam, Xi = wcs.all_pix2world(Iarr, Jarr, 0)
 
     del Iarr
     del Jarr
 
     # Make sure that we do have microns
-    Lam = Lam * u.Unit(wcs.wcs.cunit[1]).to(u.um)
+    Lam = Lam * u.Unit(wcs.wcs.cunit[0]).to(u.um)
+
 
     # Convert Xi, Lam to focal plane units
     Xarr = trace.xilam2x(Xi, Lam)
@@ -168,6 +172,7 @@ def rectify_trace(trace, chiplist, params):
             print("It's not on the chip after all...")
             continue
 
+        # TODO: Check following line
         specpart = chip.interp(jarr, iarr, grid=False)
         rect_spec += specpart * mask
 
