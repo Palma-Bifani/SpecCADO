@@ -266,8 +266,46 @@ we refer to the PDR documentation \cite{SimCADO-PDR}.
 \section{Installation}
 \label{sec:installation}
 
+\subsection{Install SimCADO}
+\label{ssec:install_simcado}
+
+
+SpecCADO relies on a prior installation of SimCADO. Download the
+SimCADO source package from
+\url{https://homepage.univie.ac.at/oliver.czoske/SimCADO-0.5dev1.tar.gz}. Unpack
+the tar file and change to the source directory:
+\begin{lstlisting}[style=csh]
+tar xvf SimCADO-0.5dev1.tar.gz
+cd SimCADO-0.5dev1/
+\end{lstlisting}
+
+Install the package by doing
+\begin{lstlisting}[style=csh]
+pip install .
+\end{lstlisting}
+or
+\begin{lstlisting}[style=csh]
+pip install --user .
+\end{lstlisting}
+
+The first version may require root permissions; use the second form to
+install into a user directory.
+
+If the \lstinline{pip} and \lstinline{python} commands point to a
+python-2.7 installation, please try the commands \lstinline{pip3} and
+\lstinline{python3} instead.
+
+The subdirectory \lstinline{data/} of the SimCADO source directory
+contains MICADO-specific data files that are needed for simulations to
+be performed with SimCADO or SpecCADO. As these data are not
+installed, you will need to tell the software the absolute path to
+this directory via the parameter \lstinline{SIM_DATA_DIR}.
+
+\subsection{Install SpecCADO}
+\label{ssec:install_speccado}
+
 The SpecCADO source package can be downloaded from
-\url{http://homepage.univie.ac.at/oliver.czoske/speccado-0.1.3.tar.gz}. Unpack
+\url{https://homepage.univie.ac.at/oliver.czoske/speccado-0.1.3.tar.gz}. Unpack
 the tar file and change to the source directory:
 \begin{lstlisting}[style=csh]
 tar xvf speccado-0.1.3.tar.gz
@@ -285,12 +323,7 @@ or
 \begin{lstlisting}[style=csh]
 pip install --user .
 \end{lstlisting}
-The first version may require root permissions; use the second form to
-install into a user directory.
 
-If the \lstinline{pip} and \lstinline{python} commands point to a
-python-2.7 installation, please try the commands \lstinline{pip3} and
-\lstinline{python3} instead.
 
 To test the installation, start a \lstinline{python} or
 \lstinline{ipython} session and do
@@ -332,9 +365,9 @@ include the output of this command whenever you report a problem or a
 possible bug.
 
 The necessary dependencies to run \lstinline{speccado} are
-\lstinline{simcado}, \lstinline{astropy}, \lstinline{numpy}, and
-\lstinline{scipy}. \lstinline{poppy} and \lstinline{wget} are not
-required.
+\lstinline{simcado}, \lstinline{astropy}, \lstinline{synphot},
+\lstinline{numpy}, and \lstinline{scipy}. \lstinline{wget} is required
+for the following step, \lstinline{poppy} is not needed.
 
 If you want to simulate detector read-out noise, you require the file
 \lstinline{FPA_noise.fits}. You can obtain a prepared file by doing
@@ -380,7 +413,7 @@ The first parameter in the files is \lstinline{SIM_DATA_DIR}. This is
 the directory where SimCADO and SpecCADO look for data files and needs
 to be set to where this directory is located on your
 system. Typically, this will be the data directory in the SimCADO
-source directory, as in
+source directory (see Sect.~\ref{ssec:install_simcado}), as in
 \begin{lstlisting}[style=csh]
 SIM_DATA_DIR        /path/to/simcado-0.5dev1/data
 \end{lstlisting}
