@@ -68,8 +68,8 @@ def main(configfile, sim_data_dir=None):
     # You can create your own transmission by suitably defining
     # tc_lam (in microns) and tc_val (as numpy arrays).
     opttrain = sim.OpticalTrain(cmds)
-    tc_lam = opttrain.tc_mirror.lam_orig
-    tc_val = opttrain.tc_mirror.val_orig
+    tc_lam = opttrain.tc_source.lam_orig
+    tc_val = opttrain.tc_source.val_orig
     transmission = interp1d(tc_lam, tc_val, kind='linear',
                             bounds_error=False, fill_value=0.)
 
