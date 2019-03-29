@@ -41,7 +41,7 @@ def bug_report():
         import_module = __import__
 
     packages = ["speccado", "simcado", "astropy", "synphot", "numpy",
-                "scipy", "poppy", "wget"]
+                "scipy", "yaml", "poppy", "wget"]
 
     # Check Python version
     print("Python:\n", sys.version)
