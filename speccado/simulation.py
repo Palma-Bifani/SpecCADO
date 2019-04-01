@@ -15,7 +15,7 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
     psf : instance of class simcado.psf.PSF
     tracelist : [list]
         List of SpectralTrace objects
-    cmds : instance of class simcado.psf.UserCommands
+    cmds : instance of class simcado.UserCommands
     transmission : interpolation object
     '''
 
@@ -283,7 +283,7 @@ def do_all_chips(detector, src, psf, tracelist, cmds, transmission):
     timestamp = '{:%Y-%m-%dT%H-%M-%S}'.format(datetime.datetime.now())
     filename = "detector-" + timestamp + ".fits"
     detector.read_out(filename=filename)
-    message("Output file: " + filename)
+    return filename
 
 
 def do_one_chip(chip, src, psf, tracelist, cmds, transmission):
@@ -302,4 +302,4 @@ def do_one_chip(chip, src, psf, tracelist, cmds, transmission):
     outheader.extend(chip.wcs_fp.to_header(key='A'))
 
     fits.writeto(filename, outimage, outheader)
-    message("Output file: " + filename)
+    return filename
