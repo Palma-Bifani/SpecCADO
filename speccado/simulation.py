@@ -1,9 +1,81 @@
 '''Spectroscopic simulation'''
 import datetime
 import numpy as np
+from scipy.interpolate import interp1d
 from astropy.io import fits
+from astropy.io import ascii as ioascii
+import simcado as sim
 from .utils import message
-from .layout import XiLamImage, is_order_on_chip
+from .layout import XiLamImage, is_order_on_chip, read_spec_order
+from .source import SpectralSource
+from .psf import prepare_psf
+
+def simulate(cmds, specfiles, sourcepos, bgfiles, chip=None):
+    '''Perform SpecCADO simulation
+
+Parameters
+----------
+    cmds : simcado.UserCommands
+    specfiles : list of str
+        1D FITS files describing source spectra
+    sourcepos : list of tuples
+        (x,y) position of source within slit
+    bgfiles : list of str
+        1D fits files describing background spectra
+    chip : integer
+        Number of chip in MICADO array (1..9)
+        If None, the entire FPA (9 chips) is simulated.
+
+Returns
+-------
+    name of output file
+'''
+
+    ## Create source object. The units of the spectra are
+    ##         - ph / um  for source spectra
+    ##         - erg / (um arcsec2) for background spectra
+    srcobj = SpectralSource(cmds, specfiles, sourcepos, bgfiles)
+
+    ## Load the psf
+    psfobj = prepare_psf(cmds['SCOPE_PSF_FILE'])
+
+    # Create detector
+    detector = sim.Detector(cmds, small_fov=False)
+
+    # Create transmission curve.
+    # Here we take the  transmission from the simcado optical train,
+    # this includes atmospheric, telescope and instrumental
+    # transmissivities.
+    # You can create your own transmission by suitably defining
+    # tc_lam (in microns) and tc_val (as numpy arrays).
+    opttrain = sim.OpticalTrain(cmds)
+    tc_lam = opttrain.tc_source.lam_orig
+    tc_val = opttrain.tc_source.val_orig
+    tc_interp = interp1d(tc_lam, tc_val, kind='linear',
+                         bounds_error=False, fill_value=0.)
+    atmo_tc_tab = ioascii.read(cmds['ATMO_TC'])
+    atmo_lam = atmo_tc_tab['lambda']
+    atmo_val = atmo_tc_tab['X1.0']
+    atmo_val = atmo_val * tc_interp(atmo_lam)
+
+    transmission = interp1d(atmo_lam, atmo_val,
+                            kind='linear', bounds_error=False, fill_value=0.)
+    np.savetxt("transmission.txt", (atmo_lam, atmo_val))
+
+    ## Prepare the order descriptions
+    tracelist = read_spec_order(cmds['SPEC_ORDER_LAYOUT'])
+
+    #    tracelist = list()
+    #for lfile in layoutlist:
+    #    tracelist.append(sc.SpectralTrace(lfile))
+    if chip is None:
+        outfile = do_all_chips(detector, srcobj, psfobj, tracelist, cmds,
+                               transmission)
+    else:
+        outfile = do_one_chip(detector.chips[chip - 1], srcobj, psfobj,
+                              tracelist, cmds, transmission)
+        return outfile
+
 
 def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
     '''Map the spectra to a Micado chip
@@ -235,10 +307,10 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
                     J_IMG[(J_IMG < 0) | (J_IMG >= npix_xi)] = 0
                     XIMG_fpa[lower:upper, :] = image[J_IMG, I_IMG] * ijmask
                 elif cmds["SPEC_INTERPOLATION"] == "spline":
-                    XIMG_fpa[lower:upper,:] = (image_interp(XI_fpa, LAM_fpa,
-                                                            grid=False)
-                                               * ijmask
-                                               * pixscale * dlam_per_pix)
+                    XIMG_fpa[lower:upper, :] = (image_interp(XI_fpa, LAM_fpa,
+                                                             grid=False)
+                                                * ijmask
+                                                * pixscale * dlam_per_pix)
                 else:
                     raise ValueError("SPEC_INTERPOLATION unknown: " +
                                      cmds["SPEC_INTERPOLATION"])
