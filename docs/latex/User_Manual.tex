@@ -492,6 +492,10 @@ stamp of the end of the simulation, for example
 \begin{lstlisting}[style=csh]
 detector-2019-02-14T17-57-20.fits
 \end{lstlisting}
+If option \lstinline{-c} (\lstinline{--chipno}) is given, the output
+file is a single-extension FITS file named
+\lstinline{chip-x-<dataTtime>.fits}, with the chip number
+\lstinline{x} and again a time stamp.
 
 To rectify the spectra run
 \begin{lstlisting}[style=csh]
@@ -502,7 +506,8 @@ defined over the entire MICADO wavelength range. Due to the order
 sorting filter employed in the simulation, this means that most of the
 output files will not contain any signal. The file names are
 \lstinline{ORDER-xx_yy.fits} with the numbers identifying the orders
-and cross-orders.
+and cross-orders. Refer to Fig.~\ref{fig:spectral_layout} to identify
+the orders that are of interest for a given filter and chip.
 
 \textcolor{red}{The output of \lstinline{rectify_example.py} will be
   improved.}
@@ -650,15 +655,14 @@ to rename files according to your needs.
 It is also possible to simulate just a single detector from the MICADO
 array:
 \begin{pyin}
-sc.do_one_chip(detector.chips[3], srcobj, psfobj, tracelist, cmds,
+sc.do_one_chip(detector, 4, srcobj, psfobj, tracelist, cmds,
                transmission)
 \end{pyin}
-This simulates chip number~4 of the MICADO array (as python arrays are
-zero-offset).\footnote{This differs from the interface to the
-  convenience script \lstinline{simulate_example.py} described in
-  Sect.~\ref{sec:examples}.}  The output file in this case is called
-\lstinline{chip-YYYY-MM-DDThh-mm-ss.fits} and the name is again
-returned by the function.
+The second argument gives the chip number (in the system of
+Fig.~\ref{fig:detector_layout}), so this example simulates chip
+number~4 of the MICADO array. The output file in this case is called
+\lstinline{chip-x-YYYY-MM-DDThh-mm-ss.fits} (where \lstinline{x} is
+the chip number) and the name is again returned by the function.
 
 
 \section{Input file format}
