@@ -176,12 +176,12 @@
    colorlinks=true]{hyperref}
 
 
-\dmdTitle{SpecCADO:\\User Manual}
+\dmdTitle{SpecCADO\\[1ex] User Manual}
 \dmdDocId{}
-\dmdIssue{0.1.3}
-\dmdDate{6 March 2019}
+\dmdIssue{0.1.4}
+\dmdDate{2 April 2019}
 \dmdPreparedBy{O.\ Czoske}
-\dmdPreparedOn{2019-03-06}
+\dmdPreparedOn{2019-04-02}
 \dmdPreparedSig{}
 \dmdApprovedBy{}
 \dmdApprovedOn{}
@@ -238,7 +238,9 @@
   \tabletail{\hline}
 
   \begin{supertabular}{|l|l|l|l|}
-   0.1.3 & 16/2/2019 & All & Layout initialised \\
+   0.1.3 & 2019-02-16 & All & Layout initialised \\
+   \hline
+   0.1.4 & 2019-04-02 & 2, 3, 4, 6 & Update to v0.1.4 \\
    \hline
   \end{supertabular}
 
@@ -266,50 +268,80 @@ we refer to the PDR documentation \cite{SimCADO-PDR}.
 \section{Installation}
 \label{sec:installation}
 
+Both SimCADO and SpecCADO use Python~3 (preferably 3.5 or higher,
+although 3.4 should work, too). If you are unsure which version of
+Python you have, try
+\begin{lstlisting}[style=csh]
+python --version
+\end{lstlisting}
+If this returns ``\lstinline{Python 2.7.9}'' or another version
+below~3, please replace the command \lstinline{python} with
+\lstinline{python3} and \lstinline{pip} with \lstinline{pip3} in the
+following.
+
 \subsection{Install SimCADO}
 \label{ssec:install_simcado}
 
-
-SpecCADO relies on a prior installation of SimCADO. Download the
-SimCADO source package from
-\url{https://homepage.univie.ac.at/oliver.czoske/SimCADO-0.5dev1.tar.gz}. Unpack
-the tar file and change to the source directory:
+SpecCADO relies on a prior installation of SimCADO. This can be
+achieved easily with
 \begin{lstlisting}[style=csh]
-tar xvf SimCADO-0.5dev1.tar.gz
-cd SimCADO-0.5dev1/
+pip install [--user] [--upgrade] simcado
 \end{lstlisting}
+Use option \lstinline{--user} to install into a directory that belongs
+to you (without this option you may need root permissions). Use
+option \lstinline{--upgrade} to upgrade an existing SimCADO installation.
 
-Install the package by doing
-\begin{lstlisting}[style=csh]
-pip install .
-\end{lstlisting}
-or
-\begin{lstlisting}[style=csh]
-pip install --user .
-\end{lstlisting}
+SimCADO and SpecCADO require a number of files that describe the
+telescope and instrument setup. The easiest way to obtain these is to
+download them using SimCADO itself. Start an interactive
+\lstinline{python} (or preferably \lstinline{ipython} session) and
+type:
+\begin{pyin}
+import simcado
+simcado.get_extras()
+\end{pyin}
 
-The first version may require root permissions; use the second form to
-install into a user directory.
 
-If the \lstinline{pip} and \lstinline{python} commands point to a
-python-2.7 installation, please try the commands \lstinline{pip3} and
-\lstinline{python3} instead.
-
-The subdirectory \lstinline{data/} of the SimCADO source directory
-contains MICADO-specific data files that are needed for simulations to
-be performed with SimCADO or SpecCADO. As these data are not
-installed, you will need to tell the software the absolute path to
-this directory via the parameter \lstinline{SIM_DATA_DIR}.
+%%Download the
+%%SimCADO source package from
+%%\url{https://homepage.univie.ac.at/oliver.czoske/SimCADO-0.5dev1.tar.gz}. Unpack
+%%the tar file and change to the source directory:
+%%\begin{lstlisting}[style=csh]
+%%tar xvf SimCADO-0.5dev1.tar.gz
+%%cd SimCADO-0.5dev1/
+%%\end{lstlisting}
+%%
+%%Install the package by doing
+%%\begin{lstlisting}[style=csh]
+%%pip install .
+%%\end{lstlisting}
+%%or
+%%\begin{lstlisting}[style=csh]
+%%pip install --user .
+%%\end{lstlisting}
+%%
+%%The first version may require root permissions; use the second form to
+%%install into a user directory.
+%%
+%%If the \lstinline{pip} and \lstinline{python} commands point to a
+%%python-2.7 installation, please try the commands \lstinline{pip3} and
+%%\lstinline{python3} instead.
+%%
+%%The subdirectory \lstinline{data/} of the SimCADO source directory
+%%contains MICADO-specific data files that are needed for simulations to
+%%be performed with SimCADO or SpecCADO. As these data are not
+%%installed, you will need to tell the software the absolute path to
+%%this directory via the parameter \lstinline{SIM_DATA_DIR}.
 
 \subsection{Install SpecCADO}
 \label{ssec:install_speccado}
 
 The SpecCADO source package can be downloaded from
-\url{https://homepage.univie.ac.at/oliver.czoske/speccado-0.1.3.tar.gz}. Unpack
+\url{https://homepage.univie.ac.at/oliver.czoske/speccado-0.1.4.tar.gz}. Unpack
 the tar file and change to the source directory:
 \begin{lstlisting}[style=csh]
-tar xvf speccado-0.1.3.tar.gz
-cd speccado-0.1.3/
+tar xvf speccado-0.1.4.tar.gz
+cd speccado-0.1.4/
 \end{lstlisting}
 It is also possible to obtain SpecCADO from the github repository at
 \url{https://github.com/oczoske/SpecCADO}. Note that the latest
@@ -324,7 +356,6 @@ or
 pip install --user .
 \end{lstlisting}
 
-
 To test the installation, start a \lstinline{python} or
 \lstinline{ipython} session and do
 \begin{pyin}
@@ -335,23 +366,24 @@ To test the installation, start a \lstinline{python} or
 speccado.__version__
 \end{pyin}
 \begin{pyout}
-'0.1.3'
+'0.1.4'
 \end{pyout}
 \begin{pyin}
 speccado.bug_report()
 \end{pyin}
 \begin{pyprint}
 Python:
- 3.6.0 (default, Feb  6 2017, 15:51:19)
+ 3.6.0 (default, Feb  6 2017, 16:31:05)
 [GCC 4.9.2]
 
-speccado :  0.1.3
-simcado :  0.5dev1
-astropy :  3.0.5
-synphot :  0.1.2
-numpy :  1.15.4
-scipy :  1.1.0
-poppy :  0.7.0
+speccado :  0.1.4dev1
+simcado :  0.6dev0
+astropy :  3.1.2
+synphot :  0.1.3
+numpy :  1.16.2
+scipy :  1.2.1
+yaml :  5.1
+poppy :  0.8.0
 wget :  3.2
 
 Operating system:  Linux
@@ -366,16 +398,19 @@ possible bug.
 
 The necessary dependencies to run \lstinline{speccado} are
 \lstinline{simcado}, \lstinline{astropy}, \lstinline{synphot},
-\lstinline{numpy}, and \lstinline{scipy}. \lstinline{wget} is required
-for the following step, \lstinline{poppy} is not needed.
+\lstinline{numpy}, \lstinline{scipy} and
+\lstinline{yaml}. \lstinline{wget} is only required for
+\lstinline{simcado.get_extras()} (Sect.~\ref{ssec:install_simcado}),
+\lstinline{poppy} is not needed.
 
-If you want to simulate detector read-out noise, you require the file
-\lstinline{FPA_noise.fits}. You can obtain a prepared file by doing
-\begin{pyin}
-import simcado as sim
-sim.get_extras()
-\end{pyin}
-Unfortunately, this will download a lot of other stuff as well.
+%%If you want to simulate detector read-out noise, you require the file
+%%\lstinline{FPA_noise.fits}. You can obtain a prepared file by doing
+%%\begin{pyin}
+%%import simcado as sim
+%%sim.get_extras()
+%%\end{pyin}
+%%Unfortunately, this will download a lot of other stuff as well.
+
 
 \section{Example scripts}
 \label{sec:examples}
@@ -409,30 +444,51 @@ set up for MICADO spectroscopy using the IzJ, J and HK order sorting
 filters, respectively. If you run your own simulations, start from one
 of these configuration files and modify it according to your needs.
 
-The first parameter in the files is \lstinline{SIM_DATA_DIR}. This is
-the directory where SimCADO and SpecCADO look for data files and needs
-to be set to where this directory is located on your
-system. Typically, this will be the data directory in the SimCADO
-source directory (see Sect.~\ref{ssec:install_simcado}), as in
+The interface for \lstinline{simulate_example.py} is\footnote{If
+  \lstinline{simulate_example.py} is executable, then
+  \lstinline{python} is not needed.}
 \begin{lstlisting}[style=csh]
-SIM_DATA_DIR        /path/to/simcado-0.5dev1/data
+python simulate_example.py [-c chipno] [-s /to/data/dir/] configfile
 \end{lstlisting}
-When running the example scripts, the data directory can optionally
-also be specified on the command line.
+\lstinline{configfile} is the name of the configuration file; this is
+required.
 
-To simulate an HK spectrum of the sources as described above, type the
-following at the shell prompt:
+The option \lstinline{-c chipno} (or \lstinline{--chip=chipno}) can be
+used to simulate a single detector instead of the full MICADO
+focal-plane array. Replace \lstinline{chipno} with the chip number as
+defined in Fig.~\ref{fig:detector_layout}
+(Sect.~\ref{sec:coordinates}).
+
+The option \lstinline{-s} (or \lstinline{--simdatadir=}) can be used
+to point to a directory where the data used by SimCADO are
+stored. This should not be necessary if you ran
+\lstinline{simcado.get_extras()} as described in
+Sect.~\ref{ssec:install_simcado},
+
+%%The first parameter in the files is \lstinline{SIM_DATA_DIR}. This is
+%%the directory where SimCADO and SpecCADO look for data files and needs
+%%to be set to where this directory is located on your
+%%system. Typically, this will be the data directory in the SimCADO
+%%source directory (see Sect.~\ref{ssec:install_simcado}), as in
+%%\begin{lstlisting}[style=csh]
+%%SIM_DATA_DIR        /path/to/simcado-0.5dev1/data
+%%\end{lstlisting}
+%%When running the example scripts, the data directory can optionally
+%%also be specified on the command line.
+
+As an example, to simulate an HK spectrum of the sources as described
+above, type the following at the shell prompt:
 \begin{lstlisting}[style=csh]
-python simulate_example.py spectro_HK.config <SIM_DATA_DIR>
+python simulate_example.py spectro_HK.config
 \end{lstlisting}
 It may take about 20~minutes to simulate the nine detectors of the
 MICADO focal-plane array. SpecCADO writes a stream of diagnostics to
-the screen -- if all goes well this should not be of interest to
+the screen -- if all goes well these should not be of interest to
 anyone except the developer.
 
 The output file is a multi-extension FITS file (one extension per
-detector), named \lstinline{detector-<dateTtime>.fits} with
-the time stamp of the end of the simulation, for example
+detector), named \lstinline{detector-<dateTtime>.fits} with the time
+stamp of the end of the simulation, for example
 \begin{lstlisting}[style=csh]
 detector-2019-02-14T17-57-20.fits
 \end{lstlisting}
@@ -446,9 +502,10 @@ defined over the entire MICADO wavelength range. Due to the order
 sorting filter employed in the simulation, this means that most of the
 output files will not contain any signal. The file names are
 \lstinline{ORDER-xx_yy.fits} with the numbers identifying the orders
-and cross-orders. \textcolor{red}{The output of
-  \lstinline{rectify_example.py}
-  will be improved.}
+and cross-orders.
+
+\textcolor{red}{The output of \lstinline{rectify_example.py} will be
+  improved.}
 
 
 \section{Simulation of 2D spectra}
@@ -458,24 +515,31 @@ In this section, the simulation of detector images will be described
 in more detail. This should enable the user to specify sources of
 their own.
 
+\subsection{Simulation parameters}
+\label{ssec:simulation_parameters}
+
 Any simulation with SpecCADO or SimCADO starts by loading the
 configuration file:
 \begin{pyin}
 import speccado as sc
 import simcado as sim
 
-sim_data_dir = "/path/to/simcado-0.5dev1/data/"
-cmds = sim.UserCommands("spectro_HK.config", sim_data_dir)
+cmds = sim.UserCommands("spectro_HK.config")
 \end{pyin}
-The parameter \lstinline{sim_data_dir} can be ignored if
-\lstinline{SIM_DATA_DIR} is set correctly within the configuration
-file.
+If your SimCADO data are not stored in the default directory, you need
+to set the parameter \lstinline{SIM_DATA_DIR} in the config file or
+provide the correct path as a second argument to
+\lstinline{sim.UserCommands()}.
 
-It is possible to set individual parameters separately, such as the
-exposure time:
+It is recommended to edit the configuration file to set up the
+parameters for your simulation. However, it is also possible to set
+individual parameters separately, such as the exposure time:
 \begin{pyin}
 cmds['OBS_EXPTIME'] = 60
 \end{pyin}
+This may be useful if you investigate the effect of changing a single
+parameter on the performance of the instrument.
+
 For the simulation of science cases, it is often helpful to turn off
 detector saturation:
 \begin{pyin}
@@ -484,6 +548,9 @@ cmds['FPA_LINEARITY_CURVE'] = 'none'
 as this makes it possible to simulate long effective exposure times
 without the need to break the integration up into several
 sub-exposures to avoid saturation.
+
+\subsection{Setting up sources and backgrounds}
+\label{ssec:simulation_sources}
 
 Currently, SpecCADO only simulates point sources (represented by the
 PSF) and background sources (that fill the slit homogeneously).
@@ -506,7 +573,28 @@ atmospheric emission is provided:
 bgfiles = ['atmo_emission.fits']
 \end{pyin}
 
-From these lists, a \lstinline{SpectralSource} object is created by
+\subsection{Running the simulation}
+\label{ssec:simulation_run}
+
+The simulation can now be run with
+\begin{pyin}
+outfile = sc.simulate(cmds, specfiles, sourcepos, bgfiles)
+\end{pyin}
+to simulate the entire focal-plane array or
+\begin{pyin}
+outfile = sc.simulate(cmds, specfiles, sourcepos, bgfiles, chipno)
+\end{pyin}
+to simulate a single chip as numbered in
+Fig.~\ref{fig:detector_layout}. Both commands write their results to
+disk as a FITS file. The filename is returned and can be captured in a
+variable (here \lstinline{outfile}) to be processed further in a
+script.
+
+The following steps are performed by \lstinline{sc.simulate()} and are
+described in more detail to gain an understanding of how a simulation
+is performed.
+
+A \lstinline{SpectralSource} object is created by
 \begin{pyin}
 srcobj = sc.SpectralSource(cmds, specfiles, sourcepos, bgfiles)
 \end{pyin}
@@ -518,17 +606,22 @@ psfobj = sc.prepare_psf(cmds['SCOPE_PSF_FILE'])
 detector = sim.Detector(cmds, small_fov=False)
 \end{pyin}
 For the detector, we use the \lstinline{Detector} class from
-SimCADO. The PSF is a slightly extended form of the SimCADO
+SimCADO. The PSF is a slightly enhanced form of the SimCADO
 \lstinline{PSF} class, created through a SpecCADO function.
 
 The transmission of the optical system (telescope plus instrument) is
 extracted from SimCADO's \lstinline{OpticalTrain} class and stored as
 an interpolation object that can be evaluated at any wavelength
-required for the simulation:
+required for the simulation:\footnote{The transmission curve
+  \lstinline{tc_source} describes the transmission as seen by the
+  astronomical source, including atmosphere, telescope, instrument
+  mirrors and filters. If your goal is to simulate calibration spectra
+  obtained from a calibration source within the instrumen, a decent
+  approximation to the transmission is give by \lstinline{tc_mirror}.}
 \begin{pyin}
 opttrain = sim.OpticalTrain(cmds)
-tc_lam = opttrain.tc_mirror.lam_orig
-tc_val = opttrain.tc_mirror.val_orig
+tc_lam = opttrain.tc_source.lam_orig
+tc_val = opttrain.tc_source.val_orig
 
 from scipy.interpolate import interp1d
 transmission = interp1d(tc_lam, tc_val, kind='linear',
@@ -550,7 +643,9 @@ sc.do_all_chips(detector, srcobj, psfobj, tracelist, cmds,
                 transmission)
 \end{pyin}
 The result is written to disk as the multi-extension FITS file
-\lstinline{detector-YYYY-MM-DDThh-mm-ss.fits}.
+\lstinline{detector-YYYY-MM-DDThh-mm-ss.fits}. The file name is
+returned by \lstinline{sc.do_all_chips}; you can use this in scripts
+to rename files according to your needs.
 
 It is also possible to simulate just a single detector from the MICADO
 array:
@@ -559,24 +654,34 @@ sc.do_one_chip(detector.chips[3], srcobj, psfobj, tracelist, cmds,
                transmission)
 \end{pyin}
 This simulates chip number~4 of the MICADO array (as python arrays are
-zero-offset). The output file in this case is called
-\lstinline{chip-YYYY-MM-DDThh-mm-ss.fits}.
+zero-offset).\footnote{This differs from the interface to the
+  convenience script \lstinline{simulate_example.py} described in
+  Sect.~\ref{sec:examples}.}  The output file in this case is called
+\lstinline{chip-YYYY-MM-DDThh-mm-ss.fits} and the name is again
+returned by the function.
+
 
 \section{Input file format}
 \label{sec:input_format}
 
+SpecCADO needs to be fully informed about the contents of the input
+data. It is therefore necessary for a successful simulation that input
+files conform to the following requirements.
+
 \subsection{Spectra}
 \label{ssec:input_spectra}
 
-Input spectra are expected to provided as one-dimensional FITS images
-(\lstinline{NAXIS = 1}). For the transformation from pixels to
-wavelengths, a WCS is required in a format that can be read by the
+Input spectra are expected to be provided as one-dimensional FITS
+images (\lstinline{NAXIS = 1}).\footnote{This is admittedly rather
+  restrictive. We hope to make SpecCADO a bit more flexible in the
+  future.}  For the transformation from pixels to wavelengths, a WCS
+is required in a format that can be read by the
 \lstinline{astropy.wcs} module; this includes most formats defined by
 Greisen et al.\ (2006) \cite{Greisen2006}. To keep things simple,
 spectra sampled on a linear wavelength grid
 (\lstinline{CTYPE1='WAVE'}) are recommended. However, frequency or
-wave number grids, linear or non-linear, should be possible, if the
-WCS is constructed correctly.
+wave number grids, linear or non-linear, should be possible if the WCS
+is constructed correctly.
 
 As an example, the WCS of the file \lstinline{GW_Ori+9mag.fits} used
 in Sect.~\ref{sec:simulation} is
@@ -704,12 +809,17 @@ The spectral source is described as a spectroscopic cube with spatial
 coordinates $\xi$ and $\eta$ along and across the slit, respectively
 (Fig.~\ref{fig:slit_coords}), and wavelength $\lambda$. Both $\xi$ and
 $\eta$ are measured in arcsec, based on the fixed imaging scale of
-MICADO. For the short slit of MICADO, $\xi$ runs from
+MICADO. The along-slit coordinate $\xi$ always starts at
+$-1.5\,\mathrm{arcsec}$. The length of the slit if set by the keyword
+\lstinline{SPEC_SLIT_LENGTH} in the configuration file, meaning that
+the maximum value of $\xi$ is at
+$\mathtt{SPEC\_SLIT\_LENGTH} - 1.5$\,arcsec. Thus, for the short slit
+of MICADO (length $3\,\mathrm{arcsec}$), $\xi$ runs from
 $-1.5\,\mathrm{arcsec}$ to $1.5\,\mathrm{arcsec}$, whereas for the
-long slit, $\xi$ runs from $-1.5\,\mathrm{arcsec}$ to
-$13.5\,\mathrm{arcsec}$. The slit length to be used can be specified
-by the keyword \lstinline{SPEC_SLIT_LENGTH}, the slit width by
-\lstinline{SPEC_SLIT_WIDTH}.
+long slit ($15\,\mathrm{arcsec}$), $\xi$ runs from
+$-1.5\,\mathrm{arcsec}$ to $13.5\,\mathrm{arcsec}$. The slit width is
+set by \lstinline{SPEC_SLIT_WIDTH}, the centre of the slit always
+being at $\eta=0$.
 
 \begin{figure}[b]
   \centering
