@@ -32,8 +32,7 @@ known spectral mapping. Run it with
 ```sh
 python rectify_example.py <filename>
 ```
-where ``filename`` refers to a SpecCADO simulation covering the full
-focal-plane array.
+where ``filename`` refers to the output file of a SpecCADO simulation.
 
 ## Requirements
 
