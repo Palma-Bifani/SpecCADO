@@ -429,7 +429,7 @@ SpecCADO works:
   computed by
   \lstinline{skycalc}.\footnote{\url{https://www.eso.org/observing/etc/skycalc/}}
 \item \lstinline{rectify_example.py} -- takes a simulated detector
-  frame as input and recifies it into two-dimensional $\xi-\lambda$
+  frame as input and rectifies it into two-dimensional $\xi-\lambda$
   images ($\xi$ is the coordinate along the slit) from which
   one-dimensional spectra can be extracted in the usual way
   (e.g.~using \lstinline{apextract} in Iraf). Note that this is a
@@ -591,7 +591,7 @@ outfile = sc.simulate(cmds, specfiles, sourcepos, bgfiles, chipno)
 \end{pyin}
 to simulate a single chip as numbered in
 Fig.~\ref{fig:detector_layout}. Both commands write their results to
-disk as a FITS file. The filename is returned and can be captured in a
+disk as a FITS file. The file name is returned and can be captured in a
 variable (here \lstinline{outfile}) to be processed further in a
 script.
 
@@ -621,7 +621,7 @@ required for the simulation:\footnote{The transmission curve
   \lstinline{tc_source} describes the transmission as seen by the
   astronomical source, including atmosphere, telescope, instrument
   mirrors and filters. If your goal is to simulate calibration spectra
-  obtained from a calibration source within the instrumen, a decent
+  obtained from a calibration source within the instrument, a decent
   approximation to the transmission is give by \lstinline{tc_mirror}.}
 \begin{pyin}
 opttrain = sim.OpticalTrain(cmds)
@@ -701,7 +701,7 @@ CRVAL1  =           9.9402E-07 / [m] Coordinate value at reference point
 \end{lstlisting}
 
 The pixel values have to be in physical units and the units have to be
-provided explicitely in the \lstinline{BUNIT} keyword. SpecCADO uses
+provided explicitly in the \lstinline{BUNIT} keyword. SpecCADO uses
 the very flexible \lstinline{astropy.units} module to convert units:
 
 Input spectra for point sources can be given as photon or energy
@@ -763,7 +763,7 @@ are the column and row number of a pixel ($i, j = 1,\dots,4096$).
 \subsection{Focal plane coordinates}
 
 A position in the focal plane of MICADO is characterised by the
-coordinate pair $(x, y)$, given in millimeters. The origin $x=0$,
+coordinate pair $(x, y)$, given in millimetres. The origin $x=0$,
 $y=0$ is taken to coincide with the centre of detector~5, i.e.~pixel
 coordinates $i=2048.5$, $j=2048.5$. The $x$ coordinate increases along
 rows of the chips (increasing $i$), the $y$ coordinate increases along
@@ -916,6 +916,32 @@ orders as a function of wavelength.
 \end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Known Issues}
+\label{sec:issues}
+
+This is a list of known issues that make SpecCADO not quite perfect
+yet:
+\begin{itemize}
+\item High signal-to-noise simulations of a continuum background
+  source (flat-field) reveal small jumps every 512 rows in the
+  simulated detector images. The jumps are at about 0.2\,\% of the
+  signal level, so will not be noticeable of problematic in science
+  simulations.
+\item The same simulations show positive and negative spikes at a few
+  rows in some chips (again multiples of 512, but not everywhere);
+  these are also visible in science simulations. For the time being,
+  the spikes should be masked as outliers when working with simulated
+  results.
+\item SpecCADO checks whether a given order lies on a given chip
+  before simulating this order. The algorithm works for the short slit
+  of MICADO but fails for the long slit when only the right end of
+  this slit falls on a chip.
+\item SpecCADO does not apply diffraction broadening due to the
+  grism. Atmospheric lines therefore have a fairly sharp rectangular
+  shape due to the slit mapping. Diffraction would slightly smooth the
+  profiles.
+\end{itemize}
 
 \phantomsection
 \addcontentsline{toc}{section}{References}
