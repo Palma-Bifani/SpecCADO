@@ -72,7 +72,7 @@ Returns
         outfile = do_all_chips(detector, srcobj, psfobj, tracelist, cmds,
                                transmission)
     else:
-        outfile = do_one_chip(detector.chips[chip - 1], srcobj, psfobj,
+        outfile = do_one_chip(detector, chip, srcobj, psfobj,
                               tracelist, cmds, transmission)
         return outfile
 
@@ -342,7 +342,7 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
         chip_j2 = min(chip_j2 + nchiplines, chip.naxis2)
 
 
-def do_all_chips(detector, src, psf, tracelist, cmds, transmission):
+def do_all_chips(detector, src, psf, tracelist, cmds, transmission, write=True):
     '''Map spectra to the full MICADO detector plane'''
 
     for chip in detector.chips:
@@ -352,26 +352,31 @@ def do_all_chips(detector, src, psf, tracelist, cmds, transmission):
         message("DONE with chip " + str(chip.id))
         message("----------------------------------------------\n")
 
-    timestamp = '{:%Y-%m-%dT%H-%M-%S}'.format(datetime.datetime.now())
-    filename = "detector-" + timestamp + ".fits"
-    detector.read_out(filename=filename)
-    return filename
+    if write:
+        timestamp = '{:%Y-%m-%dT%H-%M-%S}'.format(datetime.datetime.now())
+        filename = "detector-" + timestamp + ".fits"
+        detector.read_out(filename=filename)
+        return filename
+    else:
+        return detector
 
 
-def do_one_chip(chip, src, psf, tracelist, cmds, transmission):
+def do_one_chip(detector, chipno, src, psf, tracelist, cmds, transmission):
     '''Map spectra onto a single chip'''
-    message("Working on chip " + str(chip.id))
-    map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission)
+    chip = detector.chips[chipno - 1]
 
-    #chip.array = chip.image[::-1, ::-1]
-    chip.array = chip.image
-    message("DONE with chip " + str(chip.id))
+    # Create a new detector with a single chip
+    newdetector = sim.Detector(cmds, small_fov=False)
+    newdetector.chips = [chip]
 
+    # Run simulation, returns detector
+    newdetector = do_all_chips(newdetector, src, psf, tracelist, cmds,
+                               transmission, write=False)
+
+    # write out
     timestamp = '{:%Y-%m-%dT%H-%M-%S}'.format(datetime.datetime.now())
-    filename = "chip-" + timestamp + ".fits"
-    outimage = chip.read_out(cmds, 'superfast')
-    outheader = chip.wcs.to_header()
-    outheader.extend(chip.wcs_fp.to_header(key='A'))
+    filename = "chip-" + str(chipno) + "-" + timestamp + ".fits"
+    newdetector.read_out(filename=filename)
 
-    fits.writeto(filename, outimage, outheader)
+    # Return file name
     return filename
