@@ -26,12 +26,18 @@ def main(filename):
 
     # Collect a few parameters
     params = dict()
-    params['pixsize'] = hdulist[1].header['CDELT1A']  # mm
+    try:
+        params['pixsize'] = hdulist[0].header['CDELT1A']  # mm
+    except KeyError:
+        params['pixsize'] = hdulist[1].header['CDELT1A']  # mm
     params['pixscale'] = hdulist[0].header['SIM_DETECTOR_PIX_SCALE']
     params['slit_length'] = hdulist[0].header['SPEC_SLIT_LENGTH']
 
     print("Create Chip objects ", filename)
-    chiplist = [sc.rectify.SpecChip(hdu) for hdu in hdulist[1:]]
+    if hdulist[0].data is None:
+        chiplist = [sc.rectify.SpecChip(hdu) for hdu in hdulist[1:]]
+    else:
+        chiplist = [sc.rectify.SpecChip(hdu) for hdu in hdulist]
 
     ## Prepare the order descriptions
     spec_order_layout = hdulist[0].header['SPEC_ORDER_LAYOUT']
