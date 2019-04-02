@@ -12,16 +12,21 @@ sim_data_dir : Path to the directory where SimCADO data are stored.
                This can also be defined in the configfile (SIM_DATA_DIR)
 '''
 
-import sys
+# 2019-03-31: Test atmospheric transmission on a constant source spectrum
+# 2019-04-01: Move simulation functionality to speccado.simulation
 
-from scipy.interpolate import interp1d
+import sys
+import getopt
+
+import numpy as np
 
 import simcado as sim
 import speccado as sc
 
 
 ##################### MAIN ####################
-def main(configfile, sim_data_dir=None):
+#def main(configfile, chip=None, sim_data_dir=None):
+def main(progname, argv):
     '''Main function
 
     Define source components, commands, psf, detector, etc. here
@@ -31,9 +36,40 @@ def main(configfile, sim_data_dir=None):
     configfile : [str]
     sim_data_dir : SimCADO data directory (None, if defined in configfile)
     '''
+    # defaults
+    chip = None
+    sim_data_dir = None
+
+    try:
+        opts, args = getopt.getopt(argv, 'hc:s:',
+                                   ["help", "chip=", "simdatadir="])
+    except getopt.GetoptError:
+        sys.exit(2)
+
+    for opt, arg in opts:
+        if opt in ('-h', '--help'):
+            print(progname, "-c <chipno> -s <simdatadir> configfile")
+            sys.exit()
+        elif opt in ('-c', '--chip'):
+            if arg == 'all':
+                chip = None
+            else:
+                try:
+                    chip = np.int(arg)
+                except ValueError:
+                    print("Argument of -c/--chip need to be integer or 'all'.")
+        elif opt in ('-s', '--simdatadir'):
+            sim_data_dir = arg
+
+    configfile = args[0]
 
     ## Commands to control the simulation
     print("Config file: ", configfile)
+    if chip is None:
+        print("Simulate all chips")
+    else:
+        print("Simulate chip ", chip)
+
     cmds = sim.UserCommands(configfile, sim_data_dir)
 
     # Optionally set some parameters explicitely.
@@ -41,54 +77,22 @@ def main(configfile, sim_data_dir=None):
     cmds['FPA_LINEARITY_CURVE'] = 'none'
 
     cmds['SPEC_INTERPOLATION'] = 'spline'
-    #cmds['SPEC_INTERPOLATION'] = 'nearest'
 
     ## Define the source(s)  -- Only point sources for the moment
     specfiles = ['GW_Ori+9mag.fits', 'GW_Ori+9mag.fits']
     sourcepos = [[-1, 0], [1, 0]]
 
+    # Constant source spectrum
+    #specfiles = ['const.fits']
+    #sourcepos = [[0, 0]]
+
     ## Background spectra - these fill the slit
     bgfiles = ['atmo_emission.fits']
+    #bgfiles = []
 
-    ## Create source object. The units of the spectra are
-    ##         - ph / um  for source spectra
-    ##         - erg / (um arcsec2) for background spectra
-    srcobj = sc.SpectralSource(cmds, specfiles, sourcepos, bgfiles)
-
-    ## Load the psf
-    psfobj = sc.prepare_psf(cmds['SCOPE_PSF_FILE'])
-
-    # Create detector
-    detector = sim.Detector(cmds, small_fov=False)
-
-    # Create transmission curve.
-    # Here we take the  transmission from the simcado optical train,
-    # this includes atmospheric, telescope and instrumental
-    # transmissivities.
-    # You can create your own transmission by suitably defining
-    # tc_lam (in microns) and tc_val (as numpy arrays).
-    opttrain = sim.OpticalTrain(cmds)
-    tc_lam = opttrain.tc_source.lam_orig
-    tc_val = opttrain.tc_source.val_orig
-    transmission = interp1d(tc_lam, tc_val, kind='linear',
-                            bounds_error=False, fill_value=0.)
-
-    ## Prepare the order descriptions
-    tracelist = sc.layout.read_spec_order(cmds['SPEC_ORDER_LAYOUT'])
-
-    #    tracelist = list()
-    #for lfile in layoutlist:
-    #    tracelist.append(sc.SpectralTrace(lfile))
-
-    #sc.do_one_chip(detector.chips[3], srcobj, psfobj, tracelist, cmds,
-    #            transmission)
-    sc.do_all_chips(detector, srcobj, psfobj, tracelist, cmds, transmission)
+    outfile = sc.simulate(cmds, specfiles, sourcepos, bgfiles, chip=chip)
+    print("Simulated file is ", outfile)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage:\n   sys,argv[0] configfile <sim_data_dir>")
-    elif len(sys.argv) == 2:
-        main(sys.argv[1])
-    else:
-        main(sys.argv[1], sys.argv[2])
+    main(sys.argv[0], sys.argv[1:])
