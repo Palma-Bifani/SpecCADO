@@ -17,13 +17,15 @@ the commands `pip3` and `python3` instead.
 
 The directory `example/` includes a script to demonstrate how to use SpecCADO. Run it by doing
 ```sh
-python simulate_example.py
+python simulate_example.py spectro_HK.config
 ```
 in the shell, or
 ```python
-%run simulate_example.py
+%run simulate_example.py spectro_HK.config
 ```
-within an `ipython` session. As delivered, `simulate_example.py` simulates a single MICADO chip. In order to simulate the full focal-plane array, comment out the line starting `sc.do_all_chips`.
+within an `ipython` session. As delivered, `simulate_example.py`
+simulates the full MICADO array. In order to simulate a single chip,
+use the option `-c chipno`.
 
 There is also a script that recifies the simulated spectra using the
 known spectral mapping. Run it with
@@ -40,6 +42,8 @@ The following python packages are needed to run SpecCADO:
 * astropy
 * numpy
 * scipy
+* synphot
+* pyyaml
 
 You can check which versions of these packages, if any, you have
 installed by running
