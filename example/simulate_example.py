@@ -38,7 +38,7 @@ def main(progname, argv):
     '''
     # defaults
     chip = None
-    sim_data_dir = None
+    sim_data_dir = '.'
 
     try:
         opts, args = getopt.getopt(argv, 'hc:s:',
