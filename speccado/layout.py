@@ -10,7 +10,7 @@ from astropy.table import Table
 
 import simcado as sim
 
-__all__ = ['SpectralTrace', 'is_order_on_chip']
+__all__ = ['SpectralTrace']
 
 #class SpectralTraceList(list):
 #    '''List of spectral traces
@@ -93,6 +93,7 @@ class SpectralTrace(object):
         self.layout = Table.read(layoutfile, hdu)
         self.xy2xi, self.xy2lam = xy2xilam_fit(self.layout)
         self.xilam2x, self.xilam2y = xilam2xy_fit(self.layout)
+        self._xiy2x, self._xiy2lam = _xiy2xlam_fit(self.layout)
         self.dlam_by_dy = sim.utils.deriv_polynomial2d(self.xy2lam)[1]
         self.left_edge = trace_fit(self.layout, 'left')
         self.centre_trace = trace_fit(self.layout, 'centre')
@@ -226,6 +227,43 @@ wcsa;
         xall = np.array([x_11, x_12, x_22, x_21])
         yall = np.array([y_11, y_12, y_22, y_21])
         return np.column_stack((xall, yall))
+
+    def is_on_chip(self, chip, slitlength=3, ylo=None, yhi=None):
+        '''Determine whether the trace appears on chip
+
+        Parameters
+        ----------
+        chip : simcado.detector.Chip
+
+        slitlength : float
+            Length of the slit on the sky (arcsec)
+
+        ylo, yhi : float
+            y-limits of the chip in the focal plane (um). Default is
+            to obtain these values from chip.
+
+        Output
+        ------
+        True if part of the trace is mapped to the chip, False otherwise.
+        '''
+        # chip corners in focal plane
+        if ylo is None:
+            ylo = chip.ymin_um
+        if yhi is None:
+            yhi = chip.ymax_um
+
+        xlo = chip.xmin_um
+        xhi = chip.xmax_um
+
+        # Slit dimensions (xi in arcsec)
+        xilo = -1.5
+        xihi = slitlength - 1.5
+
+        xcorner = np.array([self._xiy2x(xilo, ylo), self._xiy2x(xihi, ylo),
+                            self._xiy2x(xilo, yhi), self._xiy2x(xihi, yhi)])
+
+        return np.any((xcorner > xlo) * (xcorner <= xhi))
+
 
 class XiLamImage(object):
     '''Class to compute a rectified 2D spectrum.
@@ -408,12 +446,12 @@ def trace_fit(layout, side='left', degree=1):
         ypt = layout['y1']
         name = 'left edge'
     elif side == 'centre':
-        xpt = layout['x2']
-        ypt = layout['y2']
-        name = 'trace centre'
-    elif side == 'right':
         xpt = layout['x3']
         ypt = layout['y3']
+        name = 'trace centre'
+    elif side == 'right':   # HACK: This assumes 5-point layout
+        xpt = layout['x5']
+        ypt = layout['y5']
         name = 'right edge'
     else:
         raise ValueError('Side ' + str(side) + ' not recognized')
@@ -507,27 +545,46 @@ def xy2xilam_fit(layout):
     return xy2xi, xy2lam
 
 
-def is_order_on_chip(spectrace, chip, ylo=None, yhi=None):
-    '''Determine whether an order described by layout appears on chip
+def _xiy2xlam_fit(layout):
+    '''Determine polynomial fits of wavelength/slit position
 
-    Parameters
-    ----------
+    Fits are of degree 4 as a function of focal plane position'''
+    # These are helper functions to allow fitting of left/right edges
+    # for the purpose of checking whether a trace is on a chip or not.
+    from astropy.modeling import models, fitting
 
-    Output
-    ------
-'''
-    if ylo is None:
-        ylo = chip.ymin_um
-    if yhi is None:
-        yhi = chip.ymax_um
+    # Build full lists (distinction in x1...x5 not necessary)
+    xilist = []
+    xlist = []
+    ylist = []
+    for key in layout.colnames:
+        if key[:2] == 'xi':
+            xilist.append(layout[key])
+        elif key[:1] == 'x':
+            xlist.append(layout[key])
+        elif key[:1] == 'y':
+            ylist.append(layout[key])
 
-    xlo = chip.xmin_um
-    xhi = chip.xmax_um
-    xcorner = np.array([spectrace.left_edge(ylo), spectrace.right_edge(ylo),
-                        spectrace.left_edge(yhi), spectrace.right_edge(yhi)])
+    xi = np.concatenate(xilist)
+    lam = np.tile(layout['lam'], len(xlist))
+    x = np.concatenate(xlist)
+    y = np.concatenate(ylist)
 
-    return np.any((xcorner > xlo) * (xcorner <= xhi))
+    # Filter the lists: remove any points with x==0
+    good = x != 0
+    xi = xi[good]
+    lam = lam[good]
+    x = x[good]
+    y = y[good]
 
+    pinit_x = models.Polynomial2D(degree=4)
+    pinit_lam = models.Polynomial2D(degree=4)
+    fitter = fitting.LinearLSQFitter()
+    xiy2x = fitter(pinit_x, xi, y, x)
+    #xy2xi.name = 'xy2xi'
+    xiy2lam = fitter(pinit_lam, xi, y, lam)
+    #xy2lam.name = 'xy2lam'
+    return xiy2x, xiy2lam
 
 
 def read_spec_order(filename, ext=0):

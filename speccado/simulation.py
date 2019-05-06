@@ -6,7 +6,7 @@ from astropy.io import fits
 from astropy.io import ascii as ioascii
 import simcado as sim
 from .utils import message
-from .layout import XiLamImage, is_order_on_chip, read_spec_order
+from .layout import XiLamImage, read_spec_order
 from .source import SpectralSource
 from .psf import prepare_psf
 
@@ -74,7 +74,8 @@ Returns
     else:
         outfile = do_one_chip(detector, chip, srcobj, psfobj,
                               tracelist, cmds, transmission)
-        return outfile
+
+    return outfile
 
 
 def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
@@ -142,7 +143,8 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
         for spectrace in tracelist:
 
             # Does the order appear on the chip?
-            if not is_order_on_chip(spectrace, chip, ymin, ymax):
+            slitlength = cmds['SPEC_SLIT_LENGTH']
+            if not spectrace.is_on_chip(chip, slitlength, ymin, ymax):
                 message(spectrace.name + " is not on chip", indent)
                 continue
 
