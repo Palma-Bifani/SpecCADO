@@ -2,14 +2,24 @@
 
 Call
 ----
-    python simulate_example configfile <sim_data_dir>
+python simulate_example.py -h -c <chipno> -s <sim_data_dir> configfile <PARAMETER_NAME=VALUE>
+
+Command line options
+--------------------
+-h, --help : Print help and exit
+
+-c, --chip  : int
+   Number of chip to simulate
+
+-s, --simdatadir : Path to the directory where SimCADO data are stored.
+                   This can also be defined in the configfile (SIM_DATA_DIR)
 
 Command line parameters
 -----------------------
 configfile : File with SimCADO and SpecCADO configuration parameters
 
-sim_data_dir : Path to the directory where SimCADO data are stored.
-               This can also be defined in the configfile (SIM_DATA_DIR)
+parameters : strings of the form "PARAMETER_NAME=VALUE", where
+    PARAMETER_NAME is a configuration parameter known to SpecCADO/SimCADO
 '''
 
 # 2019-03-31: Test atmospheric transmission on a constant source spectrum
@@ -25,7 +35,6 @@ import speccado as sc
 
 
 ##################### MAIN ####################
-#def main(configfile, chip=None, sim_data_dir=None):
 def main(progname, argv):
     '''Main function
 
@@ -48,7 +57,7 @@ def main(progname, argv):
 
     for opt, arg in opts:
         if opt in ('-h', '--help'):
-            print(progname, "-c <chipno> -s <simdatadir> configfile")
+            print(__doc__)
             sys.exit()
         elif opt in ('-c', '--chip'):
             if arg == 'all':
@@ -61,7 +70,17 @@ def main(progname, argv):
         elif opt in ('-s', '--simdatadir'):
             sim_data_dir = arg
 
-    configfile = args[0]
+    pardict = dict()
+    for arg in args:
+        if '=' in arg:
+            newpar = arg.split('=')
+            try:
+                newpar[1] = float(newpar[1])
+            except ValueError:
+                pass
+            pardict[newpar[0]] = newpar[1]
+        else:
+            configfile = arg
 
     ## Commands to control the simulation
     print("Config file: ", configfile)
@@ -77,6 +96,9 @@ def main(progname, argv):
     cmds['FPA_LINEARITY_CURVE'] = 'none'
 
     cmds['SPEC_INTERPOLATION'] = 'spline'
+
+    # Update cmds from command line arguments
+    cmds.update(pardict)
 
     ## Define the source(s)  -- Only point sources for the moment
     specfiles = ['GW_Ori+9mag.fits', 'GW_Ori+9mag.fits']
