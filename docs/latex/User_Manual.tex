@@ -178,10 +178,10 @@
 
 \dmdTitle{SpecCADO\\[1ex] User Manual}
 \dmdDocId{}
-\dmdIssue{0.1.4}
-\dmdDate{2 April 2019}
+\dmdIssue{0.2}
+\dmdDate{7 May 2019}
 \dmdPreparedBy{O.\ Czoske}
-\dmdPreparedOn{2019-04-02}
+\dmdPreparedOn{2019-05-07}
 \dmdPreparedSig{}
 \dmdApprovedBy{}
 \dmdApprovedOn{}
@@ -239,8 +239,8 @@
 
   \begin{supertabular}{|l|l|l|l|}
    0.1.3 & 2019-02-16 & All & Layout initialised \\
-   \hline
    0.1.4 & 2019-04-02 & 2, 3, 4, 6 & Update to v0.1.4 \\
+   0.2   & 2019-05-07 & 2, 3, 7,8  & Update to v0.2 \\
    \hline
   \end{supertabular}
 
@@ -337,11 +337,11 @@ simcado.get_extras()
 \label{ssec:install_speccado}
 
 The SpecCADO source package can be downloaded from
-\url{https://homepage.univie.ac.at/oliver.czoske/speccado-0.1.4.tar.gz}. Unpack
+\url{https://homepage.univie.ac.at/oliver.czoske/speccado-0.2.tar.gz}. Unpack
 the tar file and change to the source directory:
 \begin{lstlisting}[style=csh]
-tar xvf speccado-0.1.4.tar.gz
-cd speccado-0.1.4/
+tar xvf speccado-0.2.tar.gz
+cd speccado-0.2/
 \end{lstlisting}
 It is also possible to obtain SpecCADO from the github repository at
 \url{https://github.com/oczoske/SpecCADO}. Note that the latest
@@ -366,7 +366,7 @@ To test the installation, start a \lstinline{python} or
 speccado.__version__
 \end{pyin}
 \begin{pyout}
-'0.1.4'
+'0.2'
 \end{pyout}
 \begin{pyin}
 speccado.bug_report()
@@ -376,7 +376,7 @@ Python:
  3.6.0 (default, Feb  6 2017, 16:31:05)
 [GCC 4.9.2]
 
-speccado :  0.1.4dev1
+speccado :  0.2
 simcado :  0.6dev0
 astropy :  3.1.2
 synphot :  0.1.3
@@ -448,7 +448,7 @@ The interface for \lstinline{simulate_example.py} is\footnote{If
   \lstinline{simulate_example.py} is executable, then
   \lstinline{python} is not needed.}
 \begin{lstlisting}[style=csh]
-python simulate_example.py [-c chipno] [-s /to/data/dir/] configfile
+python simulate_example.py [-c chipno] [-s /data/dir/] configfile [CONFIG_PARAM=VALUE]
 \end{lstlisting}
 \lstinline{configfile} is the name of the configuration file; this is
 required.
@@ -465,6 +465,10 @@ stored. This should not be necessary if you ran
 \lstinline{simcado.get_extras()} as described in
 Sect.~\ref{ssec:install_simcado},
 
+Individual configuration parameters can be set on the command line as
+\lstinline{CONFIG_PARAM=VALUE}. Here, \lstinline{CONFIG_PARAM} needs
+to be a valid keyword that is understood by SpecCADO or SimCADO.
+
 %%The first parameter in the files is \lstinline{SIM_DATA_DIR}. This is
 %%the directory where SimCADO and SpecCADO look for data files and needs
 %%to be set to where this directory is located on your
@@ -477,14 +481,17 @@ Sect.~\ref{ssec:install_simcado},
 %%also be specified on the command line.
 
 As an example, to simulate an HK spectrum of the sources as described
-above, type the following at the shell prompt:
+above with an exposure time of 3600 seconds for the short MICADO slit
+of length $3\,\mathrm{arcsec}$ type the following at the shell
+prompt:
 \begin{lstlisting}[style=csh]
-python simulate_example.py spectro_HK.config
+python simulate_example.py spectro_HK.config OBS_EXPTIME=3600 SPEC_SLIT_LENGTH=3
 \end{lstlisting}
 It may take about 20~minutes to simulate the nine detectors of the
-MICADO focal-plane array. SpecCADO writes a stream of diagnostics to
-the screen -- if all goes well these should not be of interest to
-anyone except the developer.
+MICADO focal-plane array.\footnote{Simulating the long slit with
+  \lstinline{SPEC_SLIT_LENGTH=15} takes considerably longer.} SpecCADO
+writes a stream of diagnostics to the screen -- if all goes well these
+should not be of interest to anyone except the developer.
 
 The output file is a multi-extension FITS file (one extension per
 detector), named \lstinline{detector-<dateTtime>.fits} with the time
@@ -891,9 +898,10 @@ the focal plane and onto the detectors.
 
 The panels in Fig.~\ref{fig:spectral_layout} show the spectral traces
 for the 3~arcsec slit and the three order sorting filters,
-\textit{IzJ}, \textit{J} and
-\textit{HK}. Fig.~\ref{fig:spectral_orders_wavelength} identifies the
-orders as a function of wavelength.
+\textit{IzJ}, \textit{J} and \textit{HK}. The \textit{J} filter is
+meant to be used with the 15~arcsec, where traces overlap with the
+\textit{IzJ} filter. Fig.~\ref{fig:spectral_orders_wavelength}
+identifies the orders as a function of wavelength.
 
 \begin{figure}[hb]
   \centering
@@ -933,10 +941,6 @@ yet:
   these are also visible in science simulations. For the time being,
   the spikes should be masked as outliers when working with simulated
   results.
-\item SpecCADO checks whether a given order lies on a given chip
-  before simulating this order. The algorithm works for the short slit
-  of MICADO but fails for the long slit when only the right end of
-  this slit falls on a chip.
 \item SpecCADO does not apply diffraction broadening due to the
   grism. Atmospheric lines therefore have a fairly sharp rectangular
   shape due to the slit mapping. Diffraction would slightly smooth the
