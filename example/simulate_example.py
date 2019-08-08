@@ -92,7 +92,8 @@ def main(progname, argv):
     cmds = sim.UserCommands(configfile, sim_data_dir)
 
     # Optionally set some parameters explicitely.
-    cmds['OBS_EXPTIME'] = 60
+    cmds['OBS_DIT'] = 60
+    cmds['OBS_NDIT'] = 1
     cmds['FPA_LINEARITY_CURVE'] = 'none'
 
     cmds['SPEC_INTERPOLATION'] = 'spline'
