@@ -50,8 +50,8 @@ def setup_package(version):
 if __name__ == '__main__':
     # Define version number
     major = 0
-    minor = 2
-    tiny = 0
+    minor = 3
+    tiny = "dev"
     version = "{}.{}.{}".format(major, minor, tiny)
 
     setup_package(version)
