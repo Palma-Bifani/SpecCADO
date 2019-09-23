@@ -66,7 +66,7 @@ def main(progname, argv):
                 try:
                     chip = np.int(arg)
                 except ValueError:
-                    print("Argument of -c/--chip need to be integer or 'all'.")
+                    print("Argument of -c/--chip must be integer or 'all'.")
         elif opt in ('-s', '--simdatadir'):
             sim_data_dir = arg
 
