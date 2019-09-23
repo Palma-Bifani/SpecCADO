@@ -1,0 +1,14 @@
+## Author: Oliver Czoske
+## Date: 2019-08-18
+## Orig-Date: 2019-08-18
+## Sources: E-REP-ATC-MET-1003_1 (LMS Design and Analysis Report)
+##          Figure 3-2, p. 20
+## Changes:
+##     2019-08-18: initialised
+## METIS H2RG-18 FPA
+   id   x_cen    y_cen     xhw     yhw  x_len  y_len  pixsize  angle    gain
+#          mm       mm      mm      mm    pix    pix       mm    deg  e-/ADU
+    1 +19.547   19.547  18.432  18.432   2048   2048    0.018    0.0     1.0
+    2 -19.547   19.547  18.432  18.432   2048   2048    0.018    0.0     1.0
+    3 -19.547  -19.547  18.432  18.432   2048   2048    0.018    0.0     1.0
+    4 +19.547  -19.547  18.432  18.432   2048   2048    0.018    0.0     1.0

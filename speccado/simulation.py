@@ -34,7 +34,7 @@ Returns
     ## Create source object. The units of the spectra are
     ##         - ph / um  for source spectra
     ##         - erg / (um arcsec2) for background spectra
-    srcobj = SpectralSource(cmds, specfiles, sourcepos, bgfiles)
+    srcobj = SpectralSource(specfiles, sourcepos, bgfiles)
 
     ## Load the psf
     psfobj = prepare_psf(cmds['SCOPE_PSF_FILE'])

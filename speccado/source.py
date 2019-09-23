@@ -26,15 +26,15 @@ class SpectralSource(object):
        list of FITS files containing 1D spectra filling the slit
     '''
 
-    def __init__(self, cmds, srcspec, srcpos, bgspec):
+    def __init__(self, srcspec, srcpos, bgspec):
 
         self.spectra = []
         if srcspec is not None:
             for thespec, thepos in zip(srcspec, srcpos):
-                self.spectra.append(Spectrum(cmds, thespec, 'src', thepos))
+                self.spectra.append(Spectrum(thespec, 'src', thepos))
         if bgspec is not None:
             for thespec in bgspec:
-                self.spectra.append(Spectrum(cmds, thespec, 'bg'))
+                self.spectra.append(Spectrum(thespec, 'bg'))
 
         self.dlam = self.min_dlam()
 
@@ -63,11 +63,11 @@ class Spectrum(object):
         position of the source (only for spectype=='src')
     '''
 
-    def __init__(self, cmds, specfile, spectype=None, srcpos=None):
+    def __init__(self, specfile, spectype=None, srcpos=None):
 
         ## TODO: This should not be hardcoded
         area_scope = 978 * u.m**2
-        exptime = cmds["OBS_EXPTIME"] * u.s
+        #exptime = cmds["OBS_DIT"] * u.s
 
         self.spectype = spectype
         #if srcpos is not None:

@@ -51,7 +51,7 @@ if __name__ == '__main__':
     # Define version number
     major = 0
     minor = 3
-    tiny = "dev"
+    tiny = 'dev1'
     version = "{}.{}.{}".format(major, minor, tiny)
 
     setup_package(version)
