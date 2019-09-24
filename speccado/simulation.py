@@ -171,14 +171,18 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
             dlam_per_pix = spectrace.dlam_by_dy(xcen,
                                                 (ymin + ymax) / 2) * pixsize
             xi_min = spectrace.layout['xi1'].min()
-            try:
-                xilam = XiLamImage(src, psf, lam_min, lam_max,
-                                   xi_min, dlam_per_pix,
-                                   cmds, transmission)
-            except ValueError:
-                message(" ---> " + spectrace.file + "[" + spectrace.name +
-                        "] gave ValueError", indent)
-                indent = indent[:-4]
+            if np.any(transmission(np.linspace(lam_min, lam_max, 1001))):
+                try:
+                    xilam = XiLamImage(src, psf, lam_min, lam_max,
+                                       xi_min, dlam_per_pix,
+                                       cmds, transmission)
+                except ValueError:
+                    message(" ---> " + spectrace.file + "[" + spectrace.name +
+                            "] gave ValueError", indent)
+                    indent = indent[:-4]
+                    continue
+            else:
+                print("Transmission zero")
                 continue
 
             xilam.writeto("xilam_image.fits", overwrite=True)

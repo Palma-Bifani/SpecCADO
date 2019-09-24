@@ -275,14 +275,20 @@ class XiLamImage(object):
     def __init__(self, src, psf, lam_min, lam_max, xi_min,
                  dlam_per_pix, cmds, transmission):
 
+        atm_refraction = True
+
         # Slit dimensions: oversample with respect to detector pixel scale
         pixscale = cmds['SIM_DETECTOR_PIX_SCALE']  # arcsec/detector pixel
-        xi_scale = 2
-        eta_scale = 4
+        print("pixscale   ", pixscale)
+        xi_osamp = 2
+        eta_osamp = 4
 
         # Steps in xi (along slit length) and eta (along slit width)
-        delta_xi = pixscale / xi_scale      # in arcsec / xilam pixel
-        delta_eta = pixscale / eta_scale
+        delta_xi = pixscale / xi_osamp      # in arcsec / xilam pixel
+        delta_eta = pixscale / eta_osamp
+
+        ## delta_eta will have to be adjusted so slit is covered by integer number of
+        ## rows
 
         # Slit width. Input in arcsec. The slit image has npix_eta pixels
         # in the width (dispersion) direction. This corresponds to a wavelength
@@ -290,7 +296,247 @@ class XiLamImage(object):
         # per *detector pixel*
         slit_width_as = cmds['SPEC_SLIT_WIDTH']         # in arcsec
         npix_eta = np.int(slit_width_as / delta_eta)
-        slit_width_lam = dlam_per_pix * npix_eta / eta_scale
+        delta_eta = slit_width_as / npix_eta            # adjust so slit covered by integer
+                                                        # number of rows
+
+        # check the following
+        slit_width_lam = dlam_per_pix / pixscale * slit_width_as
+        # wavelength step such that each row in eta is a row in lambda
+        delta_lam = slit_width_lam / npix_eta
+
+        # Slit length. Input in arcsec. The slit image has npix_xi pixels
+        # in the length direction, as does the xilam image.
+        slit_length_as = cmds['SPEC_SLIT_LENGTH']
+        npix_xi = np.int(slit_length_as / delta_xi)
+        delta_xi = slit_length_as / npix_xi    # adjust so slit is covered by integer number
+                                                # of pixels
+
+        print("delta_xi   ", delta_xi)
+        print("delta_eta  ", delta_eta)
+        print("delta_lam  ", delta_lam)
+
+        # pixel coordinates of slit centre
+        xi_cen = -xi_min / delta_xi
+        eta_cen = npix_eta / 2 - 0.5
+
+        print("Center  ", xi_cen, "   ", eta_cen)
+
+        # Initialise the wavelength vector. The xilam image will have npix_lam
+        # pixels in the wavelength direction.
+        # CHECK Are the limits appropriate?
+        lam = sim.utils.seq(lam_min - npix_eta / 2 * delta_lam,
+                            lam_max + npix_eta / 2 * delta_lam,
+                            delta_lam)
+        npix_lam = len(lam)
+
+        print("npix_xi   ", npix_xi)
+        print("npix_eta  ", npix_eta)
+        print("npix_lam  ", npix_lam)
+
+        ## Initialise image to hold the xi-lambda image
+        self.image = np.zeros((npix_xi, npix_lam+10), dtype=np.float32)
+
+        # hdu lists to hold slit images and xi-lambda images
+        slithdul = fits.HDUList()
+
+        # Create a wcs for the slit
+        # Note that the xi coordinates are excentric for the 16 arcsec slit
+        slitwcs = WCS(naxis=2)
+        slitwcs.wcs.ctype = ['LINEAR', 'LINEAR']
+        slitwcs.wcs.cunit = psf.wcs.wcs.cunit
+        slitwcs.wcs.crval = [xi_min, 0]
+        slitwcs.wcs.crpix = [1, 1 + eta_cen]
+        slitwcs.wcs.cdelt = [delta_xi, delta_eta]
+
+        if not atm_refraction:
+            ### THIS OUGHT TO GO INTO A FUNCTION
+            ## Loop over all sources
+            for curspec in src.spectra:
+                wcs_spec = curspec.wcs
+                flux_interp = curspec.interp
+
+                ## Build slit images
+                if curspec.spectype == 'src':
+                    # place a psf image for each src spectrum
+                    srcpos = curspec.srcpos
+                    scale = 1   # TODO: generalise
+                    angle = 0   # TODO: generalise
+
+                    # Build a WCS that allows mapping the source to the slit
+                    mapwcs = WCS(naxis=2)
+                    mapwcs.wcs.ctype = ['LINEAR', 'LINEAR']
+                    mapwcs.wcs.cunit = psf.wcs.wcs.cunit
+                    mapwcs.wcs.crval = [0, 0]
+                    mapwcs.wcs.crpix = [1 + xi_cen + srcpos[0] / delta_xi,
+                                        1 + eta_cen + srcpos[1] / delta_eta]
+                    mapwcs.wcs.cdelt = np.array([delta_xi, delta_eta]) / scale
+                    mapwcs.wcs.pc = [[np.cos(angle), -np.sin(angle)],
+                                     [np.sin(angle), np.cos(angle)]]
+
+                    ## Pixel and arcsec grids on the slit
+                    xi_arr, eta_arr = np.meshgrid(np.arange(npix_xi),
+                                                  np.arange(npix_eta))
+                    xi_as, eta_as = mapwcs.all_pix2world(xi_arr, eta_arr, 0)
+
+                    # Create psf image on the slit
+                    slit_image = psf.interp(xi_as, eta_as, grid=False)
+                    slithdul.append(fits.ImageHDU(slit_image,
+                                                  header=slitwcs.to_header()))
+
+                elif curspec.spectype == 'bg':
+                    # bg spectra fill the slit homogeneously
+                    slit_image = np.ones((npix_eta, npix_xi),
+                                         dtype=np.float32)
+                    slithdul.append(fits.ImageHDU(slit_image,
+                                                  header=slitwcs.to_header()))
+
+                ## Each row of the slit image is tensor multiplied with the
+                ## spectrum slightly shifted in wavelength to account for the
+                ## finite slit width (i.e. convolution with the slit profile)
+                ## and added to the xi-lambda image.
+                ## TODO: Check what is happening to the units here!
+                ## TODO: outer multiplication only works for background spectra.
+                ##       For sources, we need to build the cube explicitely in
+                ## order to take ADS into account.
+                for i in range(npix_eta):
+                    lam0 = lam - slit_width_lam / 2 + i * delta_lam
+                    nimage = np.outer(slit_image[i,], flux_interp(lam0)
+                                      * transmission(lam0))
+                    self.image += nimage * delta_eta
+
+                slithdul.writeto("slitimages.fits", overwrite=True)
+
+        elif atm_refraction:
+            ### THIS OUGHT TO GO INTO A FUNCTION
+            print("HALLO")
+            ## Loop over all sources
+            for curspec in src.spectra:
+                wcs_spec = curspec.wcs
+                flux_interp = curspec.interp
+
+                if curspec.spectype == 'src':
+                    #print("Got a source spectrum")
+                    #fd = open("trans.log", 'w')
+                    for xilamrow in npix_eta // 2 + np.arange(npix_lam - npix_eta // 2):
+                        lam_cen = lam[xilamrow]
+                        #print("Row", xilamrow, "    lambda=", lam_cen)
+
+                        # Build slitimage
+                        srcpos = curspec.srcpos
+                        scale = 1   # TODO: generalise
+                        angle = 0   # TODO: generalise
+
+                        # Build a WCS to map the source to the slit
+                        mapwcs = WCS(naxis=2)
+                        mapwcs.wcs.ctype = ['LINEAR', 'LINEAR']
+                        mapwcs.wcs.cunit = psf.wcs.wcs.cunit
+                        mapwcs.wcs.crval = [0, 0]
+                        mapwcs.wcs.crpix = [1 + xi_cen + srcpos[0] / delta_xi,
+                                            1 + eta_cen + srcpos[1] / delta_eta]
+                        mapwcs.wcs.cdelt = np.array([delta_xi, delta_eta]) / scale
+                        mapwcs.wcs.pc = [[np.cos(angle), -np.sin(angle)],
+                                         [np.sin(angle), np.cos(angle)]]
+
+                        ## Pixel and arcsec grids on the slit
+                        xi_arr, eta_arr = np.meshgrid(np.arange(npix_xi),
+                                                      np.arange(npix_eta))
+                        xi_as, eta_as = mapwcs.all_pix2world(xi_arr, eta_arr, 0)
+
+                        # Create psf image on the slit
+                        slit_image = psf.interp(xi_as, eta_as, grid=False)
+                        #print(lam_cen, flux_interp(lam_cen), transmission(lam_cen), file=fd)
+                        #print(lam_cen, flux_interp(lam_cen), transmission(lam_cen))
+                        nimage = slit_image.T * flux_interp(lam_cen) * transmission(lam_cen)
+                        self.image[:,xilamrow-npix_eta//2:xilamrow+npix_eta//2] \
+                            += nimage * delta_eta
+                    print("=============== DONE LOOP ========================")
+                    #fd.close()
+                    #fits.writeto("testslitimage.fits", self.image)
+                elif curspec.spectype == 'bg':
+                    # bg spectra fill the slit homogeneously
+                    slit_image = np.ones((npix_eta, npix_xi),
+                                         dtype=np.float32)
+
+                    ## Each row of the slit image is tensor multiplied with the
+                    ## spectrum slightly shifted in wavelength to account for the
+                    ## finite slit width (i.e. convolution with the slit profile)
+                    ## and added to the xi-lambda image.
+                    ## TODO: Check what is happening to the units here!
+                    ## TODO: outer multiplication only works for background spectra.
+                    ##       For sources, we need to build the cube explicitely in
+                    ## order to take ADS into account.
+                    nimage = np.outer(slit_image, flux_interp(lam0)
+                                      * transmission(lam0))
+                    self.image += nimage * delta_eta
+
+        ## WCS for the xi-lambda-image, i.e. the rectified 2D spectrum
+        ## Default WCS with xi in arcsec from xi_min (-1.5)
+        self.wcs = WCS(naxis=2)
+        self.wcs.wcs.crpix = [1, 1]
+        self.wcs.wcs.crval = [lam[0], xi_min]
+        self.wcs.wcs.pc = [[1, 0], [0, 1]]
+        self.wcs.wcs.cdelt = [delta_lam, delta_xi]
+        self.wcs.wcs.ctype = ['LINEAR', 'LINEAR']
+        self.wcs.wcs.cname = ['WAVELEN', 'SLITPOS']
+        self.wcs.wcs.cunit = ['um', 'arcsec']
+
+        ## Alternative : xi = [0, 1], dimensionless
+        self.wcsa = WCS(naxis=2)
+        self.wcsa.wcs.crpix = [1, 1]
+        self.wcsa.wcs.crval = [lam[0], 0]
+        self.wcsa.wcs.pc = [[1, 0], [0, 1]]
+        self.wcsa.wcs.cdelt = [delta_lam, 1./npix_xi]
+        self.wcsa.wcs.ctype = ['LINEAR', 'LINEAR']
+        self.wcsa.wcs.cname = ['WAVELEN', 'SLITPOS']
+        self.wcsa.wcs.cunit = ['um', '']
+
+        self.xi = self.wcs.all_pix2world(lam[0], np.arange(npix_xi), 0)[1]
+        self.lam = lam
+        self.npix_xi = npix_xi
+        self.npix_lam = npix_lam
+        self.interp = RectBivariateSpline(self.xi, self.lam, self.image)
+
+
+        #self.xi2 = self.wcsa.all_pix2world(lam[0], np.arange(npix_xi), 0)[1]
+        #self.lam2 = lam
+        #self.interp2 = RectBivariateSpline(self.xi2, self.lam2, self.image)
+
+    def writeto(self, outfile, overwrite=True):
+        header = self.wcs.to_header()
+        header.extend(self.wcsa.to_header(key='A'))
+        hdulist = fits.HDUList(fits.PrimaryHDU(header=header,
+                                               data=self.image))
+        hdulist.writeto(outfile, overwrite=overwrite)
+
+
+class oldXiLamImage(object):
+    '''Class to compute a rectified 2D spectrum.
+
+    The class produces and holds an image of xi (relative position along
+    the spatial slit direction) and wavelength lambda.
+    '''
+
+    def __init__(self, src, psf, lam_min, lam_max, xi_min,
+                 dlam_per_pix, cmds, transmission):
+
+        atm_refraction = True
+
+        # Slit dimensions: oversample with respect to detector pixel scale
+        pixscale = cmds['SIM_DETECTOR_PIX_SCALE']  # arcsec/detector pixel
+        xi_osamp = 2
+        eta_osamp = 4
+
+        # Steps in xi (along slit length) and eta (along slit width)
+        delta_xi = pixscale / xi_osamp      # in arcsec / xilam pixel
+        delta_eta = pixscale / eta_osamp
+
+        # Slit width. Input in arcsec. The slit image has npix_eta pixels
+        # in the width (dispersion) direction. This corresponds to a wavelength
+        # range which is determined by the local dispersion dlam_per_pix, given
+        # per *detector pixel*
+        slit_width_as = cmds['SPEC_SLIT_WIDTH']         # in arcsec
+        npix_eta = np.int(slit_width_as / delta_eta)
+        slit_width_lam = dlam_per_pix * npix_eta / eta_osamp
 
         # Slit length. Input in arcsec. The slit image has npix_xi pixels
         # in the length direction, as does the xilam image.
@@ -326,66 +572,144 @@ class XiLamImage(object):
         slitwcs.wcs.crpix = [1, 1 + eta_cen]
         slitwcs.wcs.cdelt = [delta_xi, delta_eta]
 
-        ## Loop over all sources
-        for curspec in src.spectra:
-            wcs_spec = curspec.wcs
-            flux_interp = curspec.interp
+        # Wavelength step per eta
+        if npix_eta == 1:
+            dlam_eta = 0
+        else:
+            dlam_eta = slit_width_lam / (npix_eta - 1)
 
-            ## Build slit images
-            if curspec.spectype == 'src':
-                # place a psf image for each src spectrum
-                srcpos = curspec.srcpos
-                scale = 1   # TODO: generalise
-                angle = 0   # TODO: generalise
+        if not atm_refraction:
+            ### THIS OUGHT TO GO INTO A FUNCTION
+            ## Loop over all sources
+            for curspec in src.spectra:
+                wcs_spec = curspec.wcs
+                flux_interp = curspec.interp
 
-                # Build a WCS that allows mapping the source to the slit
-                mapwcs = WCS(naxis=2)
-                mapwcs.wcs.ctype = ['LINEAR', 'LINEAR']
-                mapwcs.wcs.cunit = psf.wcs.wcs.cunit
-                mapwcs.wcs.crval = [0, 0]
-                mapwcs.wcs.crpix = [1 + xi_cen + srcpos[0] / delta_xi,
-                                    1 + eta_cen + srcpos[1] / delta_eta]
-                mapwcs.wcs.cdelt = np.array([delta_xi, delta_eta]) / scale
-                mapwcs.wcs.pc = [[np.cos(angle), -np.sin(angle)],
-                                 [np.sin(angle), np.cos(angle)]]
+                ## Build slit images
+                if curspec.spectype == 'src':
+                    # place a psf image for each src spectrum
+                    srcpos = curspec.srcpos
+                    scale = 1   # TODO: generalise
+                    angle = 0   # TODO: generalise
 
-                ## Pixel and arcsec grids on the slit
-                xi_arr, eta_arr = np.meshgrid(np.arange(npix_xi),
-                                              np.arange(npix_eta))
-                xi_as, eta_as = mapwcs.all_pix2world(xi_arr, eta_arr, 0)
+                    # Build a WCS that allows mapping the source to the slit
+                    mapwcs = WCS(naxis=2)
+                    mapwcs.wcs.ctype = ['LINEAR', 'LINEAR']
+                    mapwcs.wcs.cunit = psf.wcs.wcs.cunit
+                    mapwcs.wcs.crval = [0, 0]
+                    mapwcs.wcs.crpix = [1 + xi_cen + srcpos[0] / delta_xi,
+                                        1 + eta_cen + srcpos[1] / delta_eta]
+                    mapwcs.wcs.cdelt = np.array([delta_xi, delta_eta]) / scale
+                    mapwcs.wcs.pc = [[np.cos(angle), -np.sin(angle)],
+                                     [np.sin(angle), np.cos(angle)]]
 
-                # Create psf image on the slit
-                slit_image = psf.interp(xi_as, eta_as, grid=False)
-                slithdul.append(fits.ImageHDU(slit_image,
-                                              header=slitwcs.to_header()))
+                    ## Pixel and arcsec grids on the slit
+                    xi_arr, eta_arr = np.meshgrid(np.arange(npix_xi),
+                                                  np.arange(npix_eta))
+                    xi_as, eta_as = mapwcs.all_pix2world(xi_arr, eta_arr, 0)
 
-            elif curspec.spectype == 'bg':
-                # bg spectra fill the slit homogeneously
-                slit_image = np.ones((npix_eta, npix_xi),
-                                     dtype=np.float32)
-                slithdul.append(fits.ImageHDU(slit_image,
-                                              header=slitwcs.to_header()))
+                    # Create psf image on the slit
+                    slit_image = psf.interp(xi_as, eta_as, grid=False)
+                    slithdul.append(fits.ImageHDU(slit_image,
+                                                  header=slitwcs.to_header()))
 
-            if npix_eta == 1:
-                dlam_eta = 0
-            else:
-                dlam_eta = slit_width_lam / (npix_eta - 1)
+                elif curspec.spectype == 'bg':
+                    # bg spectra fill the slit homogeneously
+                    slit_image = np.ones((npix_eta, npix_xi),
+                                         dtype=np.float32)
+                    slithdul.append(fits.ImageHDU(slit_image,
+                                                  header=slitwcs.to_header()))
 
-            ## Each row of the slit image is tensor multiplied with the spectrum
-            ## slightly shifted in wavelength to account for the finite slit
-            ## width (i.e. convolution with the slit profile) and added to the
-            ## xi-lambda image.
-            ## TODO: Check what is happening to the units here!
-            ## TODO: outer multiplication only works for background spectra.
-            ##       For sources, we need to build the cube explicitely in order to take ADS
-            ##       into account.
-            for i in range(npix_eta):
-                lam0 = lam - slit_width_lam / 2 + i * dlam_eta
-                nimage = np.outer(slit_image[i,], flux_interp(lam0)
-                                  * transmission(lam0))
-                self.image += nimage * delta_eta
+                if npix_eta == 1:
+                    dlam_eta = 0
+                else:
+                    dlam_eta = slit_width_lam / (npix_eta - 1)
 
-        slithdul.writeto("slitimages.fits", overwrite=True)
+                ## Each row of the slit image is tensor multiplied with the
+                ## spectrum slightly shifted in wavelength to account for the
+                ## finite slit width (i.e. convolution with the slit profile)
+                ## and added to the xi-lambda image.
+                ## TODO: Check what is happening to the units here!
+                ## TODO: outer multiplication only works for background spectra.
+                ##       For sources, we need to build the cube explicitely in
+                ## order to take ADS into account.
+                for i in range(npix_eta):
+                    lam0 = lam - slit_width_lam / 2 + i * dlam_eta
+                    nimage = np.outer(slit_image[i,], flux_interp(lam0)
+                                      * transmission(lam0))
+                    self.image += nimage * delta_eta
+
+                slithdul.writeto("slitimages.fits", overwrite=True)
+
+        elif atm_refraction:
+            ### THIS OUGHT TO GO INTO A FUNCTION
+            print("HALLO")
+            ## Loop over all sources
+            for curspec in src.spectra:
+                wcs_spec = curspec.wcs
+                flux_interp = curspec.interp
+
+                if curspec.spectype == 'src':
+                    #print("Got a source spectrum")
+                    for xilamrow in range(npix_lam):
+                        lam_cen = lam_min + xilamrow * delta_lam
+                        print("Row", xilamrow, "    lambda=", lam_cen)
+                        for ieta in range(npix_eta):
+                            lam0 = lam_cen - slit_width_lam / 2 + ieta * dlam_eta
+                            #print("   Eta=", ieta, "     lam0=", lam0)
+
+                            # place a psf image for each src spectrum
+                            srcpos = curspec.srcpos
+                            scale = 1   # TODO: generalise
+                            angle = 0   # TODO: generalise
+
+                            # Build a WCS to map the source to the slit
+                            mapwcs = WCS(naxis=2)
+                            mapwcs.wcs.ctype = ['LINEAR', 'LINEAR']
+                            mapwcs.wcs.cunit = psf.wcs.wcs.cunit
+                            mapwcs.wcs.crval = [0, 0]
+                            mapwcs.wcs.crpix = [1 + xi_cen + srcpos[0] / delta_xi,
+                                                1 + eta_cen + srcpos[1] / delta_eta]
+                            mapwcs.wcs.cdelt = np.array([delta_xi, delta_eta]) / scale
+                            mapwcs.wcs.pc = [[np.cos(angle), -np.sin(angle)],
+                                             [np.sin(angle), np.cos(angle)]]
+
+                            ## Pixel and arcsec grids on the slit
+                            xi_arr, eta_arr = np.meshgrid(np.arange(npix_xi),
+                                                          ieta)
+                            xi_as, eta_as = mapwcs.all_pix2world(xi_arr, eta_arr, 0)
+
+                            #print("xi_as", xi_as)
+                            #print("eta_as", eta_as)
+
+                            # Create psf image on the slit
+                            slit_image = psf.interp(xi_as, eta_as, grid=False)
+                            #print("slit_image", slit_image.shape)
+                            nimage = slit_image.T * flux_interp(lam0) * transmission(lam0)
+                            #print("nimage", nimage.shape)
+                            #print("self.image", self.image[:,xilamrow].shape)
+                            self.image[:,xilamrow] += nimage.flatten() * delta_eta
+                            #print("--> ", self.image[:,xilamrow])
+
+                elif curspec.spectype == 'bg':
+                    # bg spectra fill the slit homogeneously
+                    slit_image = np.ones((npix_eta, npix_xi),
+                                         dtype=np.float32)
+
+
+                    ## Each row of the slit image is tensor multiplied with the
+                    ## spectrum slightly shifted in wavelength to account for the
+                    ## finite slit width (i.e. convolution with the slit profile)
+                    ## and added to the xi-lambda image.
+                    ## TODO: Check what is happening to the units here!
+                    ## TODO: outer multiplication only works for background spectra.
+                    ##       For sources, we need to build the cube explicitely in
+                    ## order to take ADS into account.
+                    for i in range(npix_eta):
+                        lam0 = lam - slit_width_lam / 2 + i * dlam_eta
+                        nimage = np.outer(slit_image[i,], flux_interp(lam0)
+                                          * transmission(lam0))
+                        self.image += nimage * delta_eta
 
         ## WCS for the xi-lambda-image, i.e. the rectified 2D spectrum
         ## Default WCS with xi in arcsec from xi_min (-1.5)
