@@ -91,13 +91,13 @@ class SpectralTrace(object):
         self.file = layoutfile
         # self.layout = read_spec_order(layoutfile, ext)
         self.layout = Table.read(layoutfile, hdu)
-        self.xy2xi, self.xy2lam = xy2xilam_fit(self.layout)
-        self.xilam2x, self.xilam2y = xilam2xy_fit(self.layout)
-        self._xiy2x, self._xiy2lam = _xiy2xlam_fit(self.layout)
+        self.xy2xi, self.xy2lam = self.xy2xilam_fit()
+        self.xilam2x, self.xilam2y = self.xilam2xy_fit()
+        self._xiy2x, self._xiy2lam = self._xiy2xlam_fit()
         self.dlam_by_dy = sim.utils.deriv_polynomial2d(self.xy2lam)[1]
-        self.left_edge = trace_fit(self.layout, 'left')
-        self.centre_trace = trace_fit(self.layout, 'centre')
-        self.right_edge = trace_fit(self.layout, 'right')
+        self.left_edge = self.trace_fit('left')
+        self.centre_trace = self.trace_fit('centre')
+        self.right_edge = self.trace_fit('right')
         try:
             self.name = self.layout.meta['EXTNAME']
         except KeyError:
@@ -265,6 +265,163 @@ wcsa;
         return np.any((xcorner > xlo) * (xcorner <= xhi))
 
 
+    def trace_fit(self, side='left', degree=1):
+        '''Linear fit to describe edge of a spectral trace
+
+        Parameters
+        ----------
+        side : [str]
+             can be 'left', 'right' or 'centre'
+        '''
+        from astropy.modeling.models import Polynomial1D
+        from astropy.modeling.fitting import LinearLSQFitter
+
+        if side == 'left':
+            xpt = self.layout['x1']
+            ypt = self.layout['y1']
+            name = 'left edge'
+        elif side == 'centre':
+            xpt = self.layout['x3']
+            ypt = self.layout['y3']
+            name = 'trace centre'
+        elif side == 'right':   # HACK: This assumes 5-point layout
+            xpt = self.layout['x5']
+            ypt = self.layout['y5']
+            name = 'right edge'
+        else:
+            raise ValueError('Side ' + str(side) + ' not recognized')
+
+        pinit = Polynomial1D(degree=degree)
+        fitter = LinearLSQFitter()
+        edge_fit = fitter(pinit, ypt, xpt)
+        #edge_fit.name = name
+        return edge_fit
+
+
+    def xilam2xy_fit(self):
+        '''Determine polynomial fits of FPA position
+
+        Fits are of degree 4 as a function of slit position and wavelength.
+        '''
+        from astropy.modeling import models, fitting
+
+        # Build full lists (distinction in x1...x5 not necessary)
+        xilist = []
+        xlist = []
+        ylist = []
+        for key in self.layout.colnames:
+            if key[:2] == 'xi':
+                xilist.append(self.layout[key])
+            elif key[:1] == 'x':
+                xlist.append(self.layout[key])
+            elif key[:1] == 'y':
+                ylist.append(self.layout[key])
+
+        xi = np.concatenate(xilist)
+        lam = np.tile(self.layout['lam'], len(xlist))
+        x = np.concatenate(xlist)
+        y = np.concatenate(ylist)
+
+        # Filter the lists: remove any points with x==0
+        good = x != 0
+        xi = xi[good]
+        lam = lam[good]
+        x = x[good]
+        y = y[good]
+
+        # compute the fits
+        pinit_x = models.Polynomial2D(degree=4)
+        pinit_y = models.Polynomial2D(degree=4)
+        fitter = fitting.LinearLSQFitter()
+        xilam2x = fitter(pinit_x, xi, lam, x)
+        #xilam2x.name = 'xilam2x'
+        xilam2y = fitter(pinit_y, xi, lam, y)
+        #xilam2y.name = 'xilam2y'
+        return xilam2x, xilam2y
+
+
+    def xy2xilam_fit(self):
+        '''Determine polynomial fits of wavelength/slit position
+
+        Fits are of degree 4 as a function of focal plane position'''
+        from astropy.modeling import models, fitting
+
+        # Build full lists (distinction in x1...x5 not necessary)
+        xilist = []
+        xlist = []
+        ylist = []
+        for key in self.layout.colnames:
+            if key[:2] == 'xi':
+                xilist.append(self.layout[key])
+            elif key[:1] == 'x':
+                xlist.append(self.layout[key])
+            elif key[:1] == 'y':
+                ylist.append(self.layout[key])
+
+        xi = np.concatenate(xilist)
+        lam = np.tile(self.layout['lam'], len(xlist))
+        x = np.concatenate(xlist)
+        y = np.concatenate(ylist)
+
+        # Filter the lists: remove any points with x==0
+        good = x != 0
+        xi = xi[good]
+        lam = lam[good]
+        x = x[good]
+        y = y[good]
+
+        pinit_xi = models.Polynomial2D(degree=4)
+        pinit_lam = models.Polynomial2D(degree=4)
+        fitter = fitting.LinearLSQFitter()
+        xy2xi = fitter(pinit_xi, x, y, xi)
+        #xy2xi.name = 'xy2xi'
+        xy2lam = fitter(pinit_lam, x, y, lam)
+        #xy2lam.name = 'xy2lam'
+        return xy2xi, xy2lam
+
+
+    def _xiy2xlam_fit(self):
+        '''Determine polynomial fits of wavelength/slit position
+
+        Fits are of degree 4 as a function of focal plane position'''
+        # These are helper functions to allow fitting of left/right edges
+        # for the purpose of checking whether a trace is on a chip or not.
+        from astropy.modeling import models, fitting
+
+        # Build full lists (distinction in x1...x5 not necessary)
+        xilist = []
+        xlist = []
+        ylist = []
+        for key in self.layout.colnames:
+            if key[:2] == 'xi':
+                xilist.append(self.layout[key])
+            elif key[:1] == 'x':
+                xlist.append(self.layout[key])
+            elif key[:1] == 'y':
+                ylist.append(self.layout[key])
+
+        xi = np.concatenate(xilist)
+        lam = np.tile(self.layout['lam'], len(xlist))
+        x = np.concatenate(xlist)
+        y = np.concatenate(ylist)
+
+        # Filter the lists: remove any points with x==0
+        good = x != 0
+        xi = xi[good]
+        lam = lam[good]
+        x = x[good]
+        y = y[good]
+
+        pinit_x = models.Polynomial2D(degree=4)
+        pinit_lam = models.Polynomial2D(degree=4)
+        fitter = fitting.LinearLSQFitter()
+        xiy2x = fitter(pinit_x, xi, y, x)
+        #xy2xi.name = 'xy2xi'
+        xiy2lam = fitter(pinit_lam, xi, y, lam)
+        #xy2lam.name = 'xy2lam'
+        return xiy2x, xiy2lam
+
+
 class XiLamImage(object):
     '''Class to compute a rectified 2D spectrum.
 
@@ -428,163 +585,6 @@ class XiLamImage(object):
 
 
 
-def trace_fit(layout, side='left', degree=1):
-    '''Linear fit to describe edge of a spectral trace
-
-    Parameters
-    ----------
-    layout : [table]
-         a table describing a spectral trace
-    side : [str]
-         can be 'left', 'right' or 'centre'
-    '''
-    from astropy.modeling.models import Polynomial1D
-    from astropy.modeling.fitting import LinearLSQFitter
-
-    if side == 'left':
-        xpt = layout['x1']
-        ypt = layout['y1']
-        name = 'left edge'
-    elif side == 'centre':
-        xpt = layout['x3']
-        ypt = layout['y3']
-        name = 'trace centre'
-    elif side == 'right':   # HACK: This assumes 5-point layout
-        xpt = layout['x5']
-        ypt = layout['y5']
-        name = 'right edge'
-    else:
-        raise ValueError('Side ' + str(side) + ' not recognized')
-
-    pinit = Polynomial1D(degree=degree)
-    fitter = LinearLSQFitter()
-    edge_fit = fitter(pinit, ypt, xpt)
-    #edge_fit.name = name
-    return edge_fit
-
-
-def xilam2xy_fit(layout):
-    '''Determine polynomial fits of FPA position
-
-    Fits are of degree 4 as a function of slit position and wavelength.
-    '''
-    from astropy.modeling import models, fitting
-
-    # Build full lists (distinction in x1...x5 not necessary)
-    xilist = []
-    xlist = []
-    ylist = []
-    for key in layout.colnames:
-        if key[:2] == 'xi':
-            xilist.append(layout[key])
-        elif key[:1] == 'x':
-            xlist.append(layout[key])
-        elif key[:1] == 'y':
-            ylist.append(layout[key])
-
-    xi = np.concatenate(xilist)
-    lam = np.tile(layout['lam'], len(xlist))
-    x = np.concatenate(xlist)
-    y = np.concatenate(ylist)
-
-    # Filter the lists: remove any points with x==0
-    good = x != 0
-    xi = xi[good]
-    lam = lam[good]
-    x = x[good]
-    y = y[good]
-
-    # compute the fits
-    pinit_x = models.Polynomial2D(degree=4)
-    pinit_y = models.Polynomial2D(degree=4)
-    fitter = fitting.LinearLSQFitter()
-    xilam2x = fitter(pinit_x, xi, lam, x)
-    #xilam2x.name = 'xilam2x'
-    xilam2y = fitter(pinit_y, xi, lam, y)
-    #xilam2y.name = 'xilam2y'
-    return xilam2x, xilam2y
-
-
-def xy2xilam_fit(layout):
-    '''Determine polynomial fits of wavelength/slit position
-
-    Fits are of degree 4 as a function of focal plane position'''
-    from astropy.modeling import models, fitting
-
-    # Build full lists (distinction in x1...x5 not necessary)
-    xilist = []
-    xlist = []
-    ylist = []
-    for key in layout.colnames:
-        if key[:2] == 'xi':
-            xilist.append(layout[key])
-        elif key[:1] == 'x':
-            xlist.append(layout[key])
-        elif key[:1] == 'y':
-            ylist.append(layout[key])
-
-    xi = np.concatenate(xilist)
-    lam = np.tile(layout['lam'], len(xlist))
-    x = np.concatenate(xlist)
-    y = np.concatenate(ylist)
-
-    # Filter the lists: remove any points with x==0
-    good = x != 0
-    xi = xi[good]
-    lam = lam[good]
-    x = x[good]
-    y = y[good]
-
-    pinit_xi = models.Polynomial2D(degree=4)
-    pinit_lam = models.Polynomial2D(degree=4)
-    fitter = fitting.LinearLSQFitter()
-    xy2xi = fitter(pinit_xi, x, y, xi)
-    #xy2xi.name = 'xy2xi'
-    xy2lam = fitter(pinit_lam, x, y, lam)
-    #xy2lam.name = 'xy2lam'
-    return xy2xi, xy2lam
-
-
-def _xiy2xlam_fit(layout):
-    '''Determine polynomial fits of wavelength/slit position
-
-    Fits are of degree 4 as a function of focal plane position'''
-    # These are helper functions to allow fitting of left/right edges
-    # for the purpose of checking whether a trace is on a chip or not.
-    from astropy.modeling import models, fitting
-
-    # Build full lists (distinction in x1...x5 not necessary)
-    xilist = []
-    xlist = []
-    ylist = []
-    for key in layout.colnames:
-        if key[:2] == 'xi':
-            xilist.append(layout[key])
-        elif key[:1] == 'x':
-            xlist.append(layout[key])
-        elif key[:1] == 'y':
-            ylist.append(layout[key])
-
-    xi = np.concatenate(xilist)
-    lam = np.tile(layout['lam'], len(xlist))
-    x = np.concatenate(xlist)
-    y = np.concatenate(ylist)
-
-    # Filter the lists: remove any points with x==0
-    good = x != 0
-    xi = xi[good]
-    lam = lam[good]
-    x = x[good]
-    y = y[good]
-
-    pinit_x = models.Polynomial2D(degree=4)
-    pinit_lam = models.Polynomial2D(degree=4)
-    fitter = fitting.LinearLSQFitter()
-    xiy2x = fitter(pinit_x, xi, y, x)
-    #xy2xi.name = 'xy2xi'
-    xiy2lam = fitter(pinit_lam, xi, y, lam)
-    #xy2lam.name = 'xy2lam'
-    return xiy2x, xiy2lam
 
 
 def read_spec_order(filename, ext=0):
