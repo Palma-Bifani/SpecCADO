@@ -75,7 +75,10 @@ class SpectralTrace(object):
     dlam_by_dy :
         polynomial giving the wavelength dispersion in the y direction in um/mm
         as a function of focal plane position x, y
-
+    xi_min :
+        sky coordinate of left slit edge (MICADO: -1.5 arcsec)
+    eta_0 :
+        sky coordinate of slit centre row (MICADO: 0 arcsec)
 
     Notes
     -----
@@ -91,6 +94,8 @@ class SpectralTrace(object):
         self.file = layoutfile
         # self.layout = read_spec_order(layoutfile, ext)
         self.layout = Table.read(layoutfile, hdu)
+        self.xi_min = self.layout['xi1'].min()
+        self.eta_cen = 0.    # for MICADO !!!
         self.xy2xi, self.xy2lam = self.xy2xilam_fit()
         self.xilam2x, self.xilam2y = self.xilam2xy_fit()
         self._xiy2x, self._xiy2lam = self._xiy2xlam_fit()
@@ -427,10 +432,29 @@ class XiLamImage(object):
 
     The class produces and holds an image of xi (relative position along
     the spatial slit direction) and wavelength lambda.
+
+    Parameters
+    ----------
+    src : SpectralSource
+       Description of the source
+    psf : simcado.UserPSF
+       currently a PSF to describe point source
+    lam_min, lam_max : float
+       wavelength range to be imaged [um]
+    xi_min : float
+       left edge of the slit [arcsec]. For MICADO this is -1.5.
+    dlam_per_pix : float
+       spectral dispersion [um / pix]
+    cmds : simcado.UserCommands
+       SimCADO configuration, here used for optical configuration
+    transmission : scipy.interpolate.interpolate.interp1d
+       transmission as function of wavelength
+    eta_0 : float
+       eta position of slit centre in the sky [arcsec]
     '''
 
     def __init__(self, src, psf, lam_min, lam_max, xi_min,
-                 dlam_per_pix, cmds, transmission):
+                 dlam_per_pix, cmds, transmission, eta_0=0):
 
         # Slit dimensions: oversample with respect to detector pixel scale
         pixscale = cmds['SIM_DETECTOR_PIX_SCALE']  # arcsec/detector pixel
@@ -455,6 +479,7 @@ class XiLamImage(object):
         npix_xi = np.int(slit_length_as / delta_xi)
 
         # pixel coordinates of slit centre
+        # TODO: clarify that these are in pixels, not in arcsec
         xi_cen = -xi_min / delta_xi
         eta_cen = npix_eta / 2 - 0.5
 
@@ -479,7 +504,7 @@ class XiLamImage(object):
         slitwcs = WCS(naxis=2)
         slitwcs.wcs.ctype = ['LINEAR', 'LINEAR']
         slitwcs.wcs.cunit = psf.wcs.wcs.cunit
-        slitwcs.wcs.crval = [xi_min, 0]
+        slitwcs.wcs.crval = [xi_min, eta_0]
         slitwcs.wcs.crpix = [1, 1 + eta_cen]
         slitwcs.wcs.cdelt = [delta_xi, delta_eta]
 

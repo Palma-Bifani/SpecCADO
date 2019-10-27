@@ -170,11 +170,11 @@ def map_spectra_to_chip(chip, src, psf, tracelist, cmds, transmission):
             # TODO: use array instead of mean value
             dlam_per_pix = spectrace.dlam_by_dy(xcen,
                                                 (ymin + ymax) / 2) * pixsize
-            xi_min = spectrace.layout['xi1'].min()
             try:
+                eta_0 = 0  # TODO: For METIS LMS compute from slice no.
                 xilam = XiLamImage(src, psf, lam_min, lam_max,
-                                   xi_min, dlam_per_pix,
-                                   cmds, transmission)
+                                   spectrace.xi_min, dlam_per_pix,
+                                   cmds, transmission, spectrace.eta_cen)
             except ValueError:
                 message(" ---> " + spectrace.file + "[" + spectrace.name +
                         "] gave ValueError", indent)
