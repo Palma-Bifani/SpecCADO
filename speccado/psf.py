@@ -9,6 +9,8 @@ import numpy as np
 from astropy.wcs import WCS
 from astropy.io import fits
 
+from astropy import units as u
+
 import simcado as sim
 
 # The contents of the two following functions should go into simcado
@@ -55,6 +57,10 @@ def psf_interpolate(psf):
     ypix = np.arange(psf.shape[0])
 
     # Convert to angular coordinates (depends on the cunits of psf.wcs)
+    psf_unit_x = u.Unit(psf.wcs.wcs.cunit[0])
+    psf_unit_y = u.Unit(psf.wcs.wcs.cunit[1])
     xas, yas = psf.wcs.all_pix2world(xpix, ypix, 0)
+    xas *= psf_unit_x.to(u.arcsec)
+    yas *= psf_unit_y.to(u.arcsec)
 
     return RectBivariateSpline(xas, yas, psf.array)
