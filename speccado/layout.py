@@ -524,7 +524,7 @@ class XiLamImage(object):
                 mapwcs = WCS(naxis=2)
                 mapwcs.wcs.ctype = ['LINEAR', 'LINEAR']
                 mapwcs.wcs.cunit = psf.wcs.wcs.cunit
-                mapwcs.wcs.crval = [0, 0]
+                mapwcs.wcs.crval = [0, eta_0]
                 mapwcs.wcs.crpix = [1 + xi_cen + srcpos[0] / delta_xi,
                                     1 + eta_cen + srcpos[1] / delta_eta]
                 mapwcs.wcs.cdelt = np.array([delta_xi, delta_eta]) / scale
