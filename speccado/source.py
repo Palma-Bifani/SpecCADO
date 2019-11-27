@@ -84,13 +84,19 @@ class Spectrum(object):
 
         self.wcs = WCS(specfile)
         lamunit = self.wcs.wcs.cunit[0]
-        self.lam = self.wcs.all_pix2world(np.arange(len(flux)), 0)[0]
+        # Make sure that our 'lam' is a wavelength with unit um
+        temp_lam = self.wcs.all_pix2world(np.arange(len(flux)), 0)[0] * u.unit(lamunit)
+        self.lam = temp_lam.to(u.um, equivalencies=u.spectral()).value
+
 
         # Fluxes are converted to
         #       photons / s / m2 / arcsec2 / um  for bg spectra
         #       photons / s / m2 / um            for src spectra
         if spectype == 'bg':
-            if fluxunit.is_equivalent("erg / (m2 um arcsec2 s)"):
+            if fluxunit.is_equivalent("erg / (m2 um arcsec2 s)",
+                                      equivalencies=u.spectral_density(self.lam)):
+                flux *= fluxunit.to("erg / (m2 um arcsec2 s",
+                                    equivalencies=u.spectral_density(self.lam))
                 flux *= u.ph * (self.lam * u.m) / (c.h * c.c)
             elif fluxunit.is_equivalent("1 / (m2 um arcsec2 s)"):
                 flux *= u.ph
@@ -119,3 +125,20 @@ class Spectrum(object):
         # Cubic interpolation function
         self.interp = interp1d(self.lam, self.flux, kind='cubic',
                                bounds_error=False, fill_value=0.)
+
+
+
+
+### Functions for input unit conversion
+def convert_wav_units(inwav):
+    """Convert spectral units to micrometers
+
+    "Spectral units" refers to all units that can be assigned to the
+    arguments of a spectrum, i.e. wavelength, wave number, and frequency.
+    Internally, SpecCADO uses wavelengths with units um (microns).
+
+    Parameters
+    ----------
+    inwav : a Quantity object
+    """
+    return inwav.to(u.um, equivalencies=u.spectral())
