@@ -169,14 +169,17 @@ def convert_flux_units(influx, wav=None):
     else:
         useequivalencies = None
 
-    if influx.unit.is_equivalent(u.ph / u.m**2 / u.um / u.s,
-                                 useequivalencies):
-        outflux = influx.to(u.ph / u.m**2 / u.um / u.s,
-                            useequivalencies)
-    elif influx.unit.is_equivalent(u.ph / u.m**2 / u.um / u.s / u.arcsec**2,
-                                   useequivalencies):
-        outflux = influx.to(u.ph / u.m**2 / u.um / u.s / u.arcsec**2,
-                            useequivalencies)
+    # Check whether we have a surface brightness
+    inunit = influx.unit
+    factor = 1
+    for un, power in zip(inunit.bases, inunit.powers):
+        if un.is_equivalent(u.arcsec):
+            conversion = (un.to(u.arcsec) * un)**power
+            print(conversion)
+            influx /= conversion
+            factor = u.arcsec**2
 
+    outflux = influx.to(u.ph / u.m**2 / u.um / u.s,
+                        useequivalencies)
 
-    return outflux
+    return outflux / factor

@@ -146,7 +146,11 @@ class TestFluxUnits:
         """
         influx = 2.34 * u.erg / u.s / u.m**2 / u.um / u.deg**2
         lam_ref = 4.2 * u.um
+
+        # TODO: check testflux
         testflux = 381753.84604285 * u.ph / u.s / u.m**2 / u.um / u.arcsec**2
 
-        outflux = convert_flux_units(influx)
+        outflux = convert_flux_units(influx, lam_ref)
+        print(testflux)
+        print(outflux)
         assert np.allclose(outflux.value, testflux.value)
