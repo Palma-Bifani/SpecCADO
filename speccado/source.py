@@ -131,7 +131,8 @@ class Spectrum(object):
 
 ### Functions for input unit conversion
 def convert_wav_units(inwav):
-    """Convert spectral units to micrometers
+    """
+    Convert spectral units to micrometers
 
     "Spectral units" refers to all units that can be assigned to the
     arguments of a spectrum, i.e. wavelength, wave number, and frequency.
@@ -142,3 +143,40 @@ def convert_wav_units(inwav):
     inwav : a Quantity object
     """
     return inwav.to(u.um, equivalencies=u.spectral())
+
+
+def convert_flux_units(influx, wav=None):
+    """
+    Convert flux units
+
+    "Flux units" refers to both integrated fluxes for point sources
+    and to surface brightnesses.
+
+    The internal units are:
+    - Flux:   ph / (m2 um s)
+    - surface flux:  ph / (m2 um s arcsec2)
+
+    Parameters
+    ----------
+    influx : list of astropy.unit.Quantity
+        These can be energy or photon fluxes
+    wav : float, nd.array
+        Wavelengths at which influx is given. Default is None, which
+        is okay if the conversion is independent of wavelength.
+    """
+    if wav is not None:
+        useequivalencies = u.spectral_density(wav)
+    else:
+        useequivalencies = None
+
+    if influx.unit.is_equivalent(u.ph / u.m**2 / u.um / u.s,
+                                 useequivalencies):
+        outflux = influx.to(u.ph / u.m**2 / u.um / u.s,
+                            useequivalencies)
+    elif influx.unit.is_equivalent(u.ph / u.m**2 / u.um / u.s / u.arcsec**2,
+                                   useequivalencies):
+        outflux = influx.to(u.ph / u.m**2 / u.um / u.s / u.arcsec**2,
+                            useequivalencies)
+
+
+    return outflux
