@@ -174,12 +174,11 @@ def convert_flux_units(influx, wav=None):
     factor = 1
     for un, power in zip(inunit.bases, inunit.powers):
         if un.is_equivalent(u.arcsec):
-            conversion = (un.to(u.arcsec) * un)**power
-            print(conversion)
-            influx /= conversion
-            factor = u.arcsec**2
+            conversion = (un.to(u.arcsec) / un)**power
+            influx *= conversion
+            factor = u.arcsec**(-2)
 
     outflux = influx.to(u.ph / u.m**2 / u.um / u.s,
                         useequivalencies)
 
-    return outflux / factor
+    return outflux * factor

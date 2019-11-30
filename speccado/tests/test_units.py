@@ -86,7 +86,7 @@ class TestWavUnits:
 class TestFluxUnits:
     """Tests of function sc.source,convert_flux_units"""
 
-    def test_src_si_units(self):
+    def test_src_flam_si(self):
         """
         Conversion of SI input units to internal units, point source
         """
@@ -103,7 +103,7 @@ class TestFluxUnits:
         assert np.allclose(outflux.value, testflux.value)
 
 
-    def test_src_f_nu(self):
+    def test_src_fnu(self):
         """
         Conversion of f_nu to f_lambda
         """
@@ -140,17 +140,48 @@ class TestFluxUnits:
         assert np.allclose(testflux.value, outflux.value)
 
 
-    def test_bg_angles(self):
+    def test_bg_flam_per_deg2(self):
         """
         Test a simple conversion of angular scale
+
+        This uses a influx per deg^2
         """
         influx = 2.34 * u.erg / u.s / u.m**2 / u.um / u.deg**2
         lam_ref = 4.2 * u.um
 
-        # TODO: check testflux
         testflux = 381753.84604285 * u.ph / u.s / u.m**2 / u.um / u.arcsec**2
 
         outflux = convert_flux_units(influx, lam_ref)
         print(testflux)
         print(outflux)
+        assert np.allclose(outflux.value, testflux.value)
+
+
+    def test_bg_flam_per_rad(self):
+        """
+        Test a simple conversion of angular scale
+
+        This uses influx per rad^2
+        """
+        influx = 2.34 * u.erg / u.s / u.m**2 / u.um / u.rad**2
+        lam_ref = 4.2 * u.um
+
+        testflux = 116.2888 * u.ph / u.s / u.m**2 / u.um / u.arcsec**2
+
+        outflux = convert_flux_units(influx, lam_ref)
+        print(testflux)
+        print(outflux)
+        assert np.allclose(outflux.value, testflux.value)
+
+
+    def test_bg_jansky_per_deg2(self):
+        """
+        Test conversion from Jy/deg^2
+        """
+        influx = 1.2e-5 * u.Jy / u.deg**2
+        lam_ref = 9.2 * u.um
+
+        testflux = 1.51891124e-06 * u.ph / u.s / u.m**2 / u.um / u.arcsec**2
+
+        outflux = convert_flux_units(influx, lam_ref)
         assert np.allclose(outflux.value, testflux.value)
