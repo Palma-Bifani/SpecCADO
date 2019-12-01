@@ -84,13 +84,19 @@ class Spectrum(object):
 
         self.wcs = WCS(specfile)
         lamunit = self.wcs.wcs.cunit[0]
-        self.lam = self.wcs.all_pix2world(np.arange(len(flux)), 0)[0]
+        # Make sure that our 'lam' is a wavelength with unit um
+        temp_lam = self.wcs.all_pix2world(np.arange(len(flux)), 0)[0] * u.unit(lamunit)
+        self.lam = temp_lam.to(u.um, equivalencies=u.spectral()).value
+
 
         # Fluxes are converted to
         #       photons / s / m2 / arcsec2 / um  for bg spectra
         #       photons / s / m2 / um            for src spectra
         if spectype == 'bg':
-            if fluxunit.is_equivalent("erg / (m2 um arcsec2 s)"):
+            if fluxunit.is_equivalent("erg / (m2 um arcsec2 s)",
+                                      equivalencies=u.spectral_density(self.lam)):
+                flux *= fluxunit.to("erg / (m2 um arcsec2 s",
+                                    equivalencies=u.spectral_density(self.lam))
                 flux *= u.ph * (self.lam * u.m) / (c.h * c.c)
             elif fluxunit.is_equivalent("1 / (m2 um arcsec2 s)"):
                 flux *= u.ph
@@ -119,3 +125,60 @@ class Spectrum(object):
         # Cubic interpolation function
         self.interp = interp1d(self.lam, self.flux, kind='cubic',
                                bounds_error=False, fill_value=0.)
+
+
+
+
+### Functions for input unit conversion
+def convert_wav_units(inwav):
+    """
+    Convert spectral units to micrometers
+
+    "Spectral units" refers to all units that can be assigned to the
+    arguments of a spectrum, i.e. wavelength, wave number, and frequency.
+    Internally, SpecCADO uses wavelengths with units um (microns).
+
+    Parameters
+    ----------
+    inwav : a Quantity object
+    """
+    return inwav.to(u.um, equivalencies=u.spectral())
+
+
+def convert_flux_units(influx, wav=None):
+    """
+    Convert flux units
+
+    "Flux units" refers to both integrated fluxes for point sources
+    and to surface brightnesses.
+
+    The internal units are:
+    - Flux:   ph / (m2 um s)
+    - surface flux:  ph / (m2 um s arcsec2)
+
+    Parameters
+    ----------
+    influx : list of astropy.unit.Quantity
+        These can be energy or photon fluxes
+    wav : float, nd.array
+        Wavelengths at which influx is given. Default is None, which
+        is okay if the conversion is independent of wavelength.
+    """
+    if wav is not None:
+        useequivalencies = u.spectral_density(wav)
+    else:
+        useequivalencies = None
+
+    # Check whether we have a surface brightness
+    inunit = influx.unit
+    factor = 1
+    for un, power in zip(inunit.bases, inunit.powers):
+        if un.is_equivalent(u.arcsec):
+            conversion = (un.to(u.arcsec) / un)**power
+            influx *= conversion
+            factor = u.arcsec**(-2)
+
+    outflux = influx.to(u.ph / u.m**2 / u.um / u.s,
+                        useequivalencies)
+
+    return outflux * factor
