@@ -5,11 +5,10 @@ import numpy as np
 from astropy.io import fits
 from astropy.wcs import WCS
 from astropy import units as u
-from astropy import constants as c
 
 from scipy.interpolate import interp1d
 
-class SpectralSource(object):
+class SpectralSource():
     '''Source object for the spectroscopy mode
 
     Create a source object consisting of a number of point sources
@@ -47,7 +46,7 @@ class SpectralSource(object):
         return np.min(np.asarray(dlam))
 
 
-class Spectrum(object):
+class Spectrum():
     '''A single spectrum
 
     The default method expects a one-dimensional fits image. The wavelength
@@ -67,10 +66,8 @@ class Spectrum(object):
 
         ## TODO: This should not be hardcoded
         area_scope = 978 * u.m**2
-        #exptime = cmds["OBS_DIT"] * u.s
 
         self.spectype = spectype
-        #if srcpos is not None:
         self.srcpos = srcpos
 
         try:
@@ -83,44 +80,22 @@ class Spectrum(object):
         flux = fits.getdata(specfile) * fluxunit
 
         self.wcs = WCS(specfile)
-        lamunit = self.wcs.wcs.cunit[0]
-        # Make sure that our 'lam' is a wavelength with unit um
-        temp_lam = self.wcs.all_pix2world(np.arange(len(flux)), 0)[0] * u.unit(lamunit)
-        self.lam = temp_lam.to(u.um, equivalencies=u.spectral()).value
 
+        # TODO we need to be able to use cubes at some point
+        lamunit = u.Unit(self.wcs.wcs.cunit[0])
+
+        # Convert to internal units: microns (u.um)
+        temp_lam = self.wcs.all_pix2world(np.arange(len(flux)), 0)[0] * lamunit
+        temp_lam = convert_wav_units(temp_lam)
+        self.lam = temp_lam.value
+        self.lamunit = str(temp_lam.unit)
 
         # Fluxes are converted to
         #       photons / s / m2 / arcsec2 / um  for bg spectra
         #       photons / s / m2 / um            for src spectra
-        if spectype == 'bg':
-            if fluxunit.is_equivalent("erg / (m2 um arcsec2 s)",
-                                      equivalencies=u.spectral_density(self.lam)):
-                flux *= fluxunit.to("erg / (m2 um arcsec2 s",
-                                    equivalencies=u.spectral_density(self.lam))
-                flux *= u.ph * (self.lam * u.m) / (c.h * c.c)
-            elif fluxunit.is_equivalent("1 / (m2 um arcsec2 s)"):
-                flux *= u.ph
-            elif not fluxunit.is_equivalent("ph / (m2 um arcsec2 s)"):
-                raise TypeError("Unknown units in " + specfile)
-
-            flux = flux * area_scope    # * exptime
-            self.fluxunit = 'ph / (s um arcsec2)'
-            self.flux = flux.to(u.Unit(self.fluxunit)).value
-
-        elif spectype == 'src':
-            if fluxunit.is_equivalent("erg / (m2 um s)"):
-                flux *= u.ph * (self.lam * u.m) / (c.h * c.c)
-            elif fluxunit.is_equivalent("1 / (m2 um s)"):
-                flux *= u.ph
-            elif not fluxunit.is_equivalent("ph / (m2 um s)"):
-                raise TypeError("Unknown units in " + specfile)
-            flux = flux * area_scope    #* exptime
-            self.fluxunit = 'ph / (s um)'
-            self.flux = flux.to(u.Unit(self.fluxunit)).value
-
-        ## Wavelengths will be stored in microns
-        self.lamunit = 'um'
-        self.lam = (self.lam * lamunit).to(self.lamunit).value  # from m to um
+        flux = area_scope * convert_flux_units(flux, self.lam * u.Unit(self.lamunit))
+        self.flux = flux.value
+        self.fluxunit = str(flux.unit)
 
         # Cubic interpolation function
         self.interp = interp1d(self.lam, self.flux, kind='cubic',
