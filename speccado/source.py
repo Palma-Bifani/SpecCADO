@@ -69,6 +69,7 @@ class Spectrum():
 
         self.spectype = spectype
         self.srcpos = srcpos
+        self.posunit = 'arcsec'
 
         try:
             fluxunit = u.Unit(fits.getheader(specfile)['BUNIT'])
