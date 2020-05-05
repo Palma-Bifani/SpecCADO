@@ -7,6 +7,79 @@ from astropy.wcs import WCS
 from astropy import units as u
 
 from scipy.interpolate import interp1d
+from scipy.signal import fftconvolve
+
+class CubeSource():
+    '''Source object derived from an input cube
+
+    The source is defined from a 3D fits file, the background spectra,
+    and the PSF.
+
+    Possible Improvements
+    ---------------------
+    - cut a slit from the 3D fits file
+    - cut a wavelength range from the cube
+
+    Parameters
+    ----------
+    srccube : list of str
+       list of FITS files containing 3D spectral cubes
+    bgspec : list of str
+       list of FITS files containing 1D spectra filling the slit
+    psf : PSF object
+    '''
+
+    def __init__(self, srccube, bgspec, psf=None):
+        hdul = fits.open(srccube)
+        self.data = hdul[0].data    # assumes data are in primary HDU
+        self.wcs = WCS(hdul[0])     # cube wcs
+        hdul.close()
+
+        specwcs = self.wcs.sub([3])
+        zpix = np.arange(self.data.shape[0])
+        lam = specwcs.all_pix2world(zpix, 0)[0]
+        lam *= specwcs.wcs.cunit[0].to(u.um)
+
+        if psf is not None:
+            self.convolve_with_psf(psf)
+
+        if bgspec is not None:
+            slitimg = np.ones_like(self.data[0])
+            for thespec in bgspec:
+                bgs = Spectrum(thespec, 'bg')
+                # need to interpolate the spectrum to the wavelength
+                # grid of the cube
+                bginterp = interp1d(bgs.lam, bgs.flux)
+                bgflux = bginterp(lam)
+
+                bgcube = np.outer(bgflux,
+                                  slitimg).reshape(self.data.shape)
+                self.data += bgcube
+
+
+    def convolve_with_psf(self, psf):
+        '''Convolve the data cube with the psf, layer by layer'''
+        mapwcs = psf.wcs
+        # this makes a couple of assumptions on the cube wcs:
+        #   - spectral axis is third axis
+        #   - image can be described by cdelt only
+        mapwcs.wcs.cdelt = self.wcs.wcs.cdelt[:2]
+
+        xarr, yarr = np.meshgrid(np.arange(psf.shape[0]),
+                                 np.arange(psf.shape[1]))
+        xarr, yarr = mapwcs.all_pix2world(xarr, yarr, 0)
+        npsf = psf.interp(xarr, yarr, grid=False)
+
+        for layer in range(self.data.shape[0]):
+            self.data[layer] = fftconvolve(self.data[layer].astype(float),
+                                           npsf, mode='same')
+
+
+    def writeto(self, fitsfile, overwrite=False):
+        '''Write the cube to fits file'''
+        fits.writeto(fitsfile, self.data, self.wcs.to_header(),
+                     overwrite=overwrite)
+
 
 class SpectralSource():
     '''Source object for the spectroscopy mode
