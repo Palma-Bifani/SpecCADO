@@ -11,6 +11,8 @@ eggs/
 .eggs/
 *.egg-info/
 *.egg
+.cache/
+
 MANIFEST
 speccado/version.py
 
