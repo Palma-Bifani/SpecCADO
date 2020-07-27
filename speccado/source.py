@@ -9,11 +9,11 @@ from astropy import units as u
 from scipy.interpolate import interp1d
 from scipy.signal import fftconvolve
 
+
 class CubeSource():
     '''Source object derived from an input cube
 
-    The source is defined from a 3D fits file, the background spectra,
-    and the PSF.
+    The source is defined from a 3D fits file and the PSF.
 
     Possible Improvements
     ---------------------
@@ -24,12 +24,10 @@ class CubeSource():
     ----------
     srccube : list of str
        list of FITS files containing 3D spectral cubes
-    bgspec : list of str
-       list of FITS files containing 1D spectra filling the slit
     psf : PSF object
     '''
 
-    def __init__(self, srccube, bgspec, psf=None):
+    def __init__(self, srccube, psf=None):
         hdul = fits.open(srccube)
         self.data = hdul[0].data    # assumes data are in primary HDU
         self.wcs = WCS(hdul[0])     # cube wcs
@@ -37,24 +35,11 @@ class CubeSource():
 
         specwcs = self.wcs.sub([3])
         zpix = np.arange(self.data.shape[0])
-        lam = specwcs.all_pix2world(zpix, 0)[0]
-        lam *= specwcs.wcs.cunit[0].to(u.um)
+        self.lam = specwcs.all_pix2world(zpix, 0)[0]
+        self.lam *= specwcs.wcs.cunit[0].to(u.um)
 
         if psf is not None:
             self.convolve_with_psf(psf)
-
-        if bgspec is not None:
-            slitimg = np.ones_like(self.data[0])
-            for thespec in bgspec:
-                bgs = Spectrum(thespec, 'bg')
-                # need to interpolate the spectrum to the wavelength
-                # grid of the cube
-                bginterp = interp1d(bgs.lam, bgs.flux)
-                bgflux = bginterp(lam)
-
-                bgcube = np.outer(bgflux,
-                                  slitimg).reshape(self.data.shape)
-                self.data += bgcube
 
 
     def convolve_with_psf(self, psf):
@@ -90,25 +75,30 @@ class SpectralSource():
 
     Parameters
     ----------
-    srcspec : list of str
+    cubespec : list of str
+       list of FITS files containing 3D spectral cubes
+    pointspec : list of str
        list of FITS files containing 1D spectra treated as point sources
-    srcpos : list of tuples [arcsec]
+    pointpos : list of tuples [arcsec]
        list of source positions relative to the field centre
     bgspec : list of str
        list of FITS files containing 1D spectra filling the slit
     '''
 
-    def __init__(self, srcspec, srcpos, bgspec):
-
+    def __init__(self, cubespec, pointspec, pointpos, bgspec):
         self.spectra = []
-        if srcspec is not None:
-            for thespec, thepos in zip(srcspec, srcpos):
+        if cubespec is not None:
+            for thespec in cubespec:
+                self.spectra.append(CubeSource(thespec))
+        if pointspec is not None:
+            for thespec, thepos in zip(pointspec, pointpos):
                 self.spectra.append(Spectrum(thespec, 'src', thepos))
         if bgspec is not None:
             for thespec in bgspec:
                 self.spectra.append(Spectrum(thespec, 'bg'))
 
         self.dlam = self.min_dlam()
+
 
     def min_dlam(self):
         '''Determine the minimum wavelength step of the spectra'''
@@ -166,7 +156,8 @@ class Spectrum():
         # Fluxes are converted to
         #       photons / s / m2 / arcsec2 / um  for bg spectra
         #       photons / s / m2 / um            for src spectra
-        flux = area_scope * convert_flux_units(flux, self.lam * u.Unit(self.lamunit))
+        flux = (area_scope *
+                convert_flux_units(flux, self.lam * u.Unit(self.lamunit)))
         self.flux = flux.value
         self.fluxunit = str(flux.unit)
 
