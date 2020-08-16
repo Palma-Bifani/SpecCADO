@@ -10,7 +10,7 @@ from .layout import XiLamImage, read_spec_order
 from .source import SpectralSource
 from .psf import prepare_psf
 
-def simulate(cmds, specfiles, sourcepos, bgfiles, chip=None):
+def simulate(cmds, specfiles, sourcepos, bgfiles, cubefiles, chip=None):
     '''Perform SpecCADO simulation
 
 Parameters
@@ -21,7 +21,9 @@ Parameters
     sourcepos : list of tuples
         (x,y) position of source within slit
     bgfiles : list of str
-        1D fits files describing background spectra
+        1D FITS files describing background spectra
+    cubefiles : list of str
+        3D FITS files containing spectral cubes
     chip : integer
         Number of chip in MICADO array (1..9)
         If None, the entire FPA (9 chips) is simulated.
@@ -34,7 +36,10 @@ Returns
     ## Create source object. The units of the spectra are
     ##         - ph / um  for source spectra
     ##         - erg / (um arcsec2) for background spectra
-    srcobj = SpectralSource(specfiles, sourcepos, bgfiles)
+    srcobj = SpectralSource(cubespec=cubefiles,
+                            pointspec=specfiles,
+                            pointpos=sourcepos,
+                            bgspec=bgfiles)
 
     ## Load the psf
     psfobj = prepare_psf(cmds['SCOPE_PSF_FILE'])
