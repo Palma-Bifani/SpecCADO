@@ -9,6 +9,7 @@ from astropy.wcs import WCS
 from astropy.table import Table
 
 import simcado as sim
+from .source import CubeSource
 
 __all__ = ['SpectralTrace']
 
@@ -336,8 +337,11 @@ class XiLamImage(object):
 
         ## Loop over all sources
         for curspec in src.spectra:
+            print("Current spectrum: ", curspec)
             ## Build slit images
-            if curspec.spectype == 'src':
+            if type(curspec) is CubeSource:
+                self.add_cube_layer(curspec, psf=None, transmission=transmission)
+            elif curspec.spectype == 'src':
                 self.add_point_layer(curspec, psf, transmission)
             elif curspec.spectype == 'bg':
                 self.add_bg_layer(curspec, transmission)
@@ -492,7 +496,7 @@ class XiLamImage(object):
             self.image += nimage * delta_eta
 
 
-    def add_cube_layer(self, spec, psf=None, transmission=None):
+    def add_cube_layer(self, cube, psf=None, transmission=None):
         '''
         Add a layer to the XiLamImage defined by a spectral cube.
         '''
@@ -508,8 +512,8 @@ class XiLamImage(object):
 
         cube_x = wcs_x.all_pix2world(np.arange(n_x), 0)[0]
         cube_eta = wcs_eta.all_pix2world(np.arange(n_eta), 0)[0]
-        cube_lam = wcs_lam.all_pix2world(np.arange(n_lam), 0)[0]
-
+        cube_lam = wcs_lam.all_pix2world(np.arange(n_lam), 0)[0] * 1e6
+        print("Cubelam: ", cube_lam.min(), "to", cube_lam.max())
 
         for i, eta in enumerate(cube_eta):
             # TODO: where do we get dlam_by_deta from?
@@ -517,13 +521,20 @@ class XiLamImage(object):
             #       within the slit!
             # cube_lam is the wavelength for the central layer
             # a layer at eta has lam shifted by dlam_by_deta * eta
-            if abs(eta) > slit_width_eta / 2:
+            if abs(eta) > self.slit_width / 2:
                 continue
 
-            lam1 = cube_lam + self.dlam_per_as * eta
-            plane = cube[:, i, :]
-            plane_interp = RectBivariateSpline(cube_lam, x, plane)
-            self.image += plane_interp(lam1, x)   # TODO: apply transmission
+            lam0 = self.lam + self.dlam_per_as * eta
+            # lam0 is the target wavelength. We need to check that this
+            # overlaps with the wavelength range covered by the cube
+            if lam0.min() < cube_lam.max() and lam0.max() > cube_lam.min():
+                plane = cube.data[:, i, :].T
+                fits.writeto("testplane.fits", plane, overwrite=True)
+                plane_interp = RectBivariateSpline(cube_x, cube_lam, plane)
+                planei = plane_interp(cube_x, lam0)
+                print("INTERPOLATED: planei", planei.shape, "on image", self.image.shape)
+                self.image += planei   # TODO: apply transmission
+                fits.writeto("testplanei.fits", planei, overwrite=True)
 
 
 
