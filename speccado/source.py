@@ -28,10 +28,15 @@ class CubeSource():
     '''
 
     def __init__(self, srccube, psf=None):
-        hdul = fits.open(srccube)
-        self.data = hdul[0].data    # assumes data are in primary HDU
-        self.wcs = WCS(hdul[0])     # cube wcs
-        hdul.close()
+        with fits.open(srccube) as hdul:
+            self.data = hdul[0].data    # assumes data are in primary HDU
+            self.wcs = WCS(hdul[0])     # cube wcs
+            try:
+                fluxunit = u.Unit(hdul[0].header['BUNIT'])
+            except KeyError:
+                print("Input file ", srccube,
+                      ":\n    Required keyword 'BUNIT' not found")
+                sys.exit(1)
 
         specwcs = self.wcs.sub([3])
         zpix = np.arange(self.data.shape[0])
