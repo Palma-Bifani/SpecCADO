@@ -499,7 +499,8 @@ class XiLamImage(object):
         '''
         Add a layer to the XiLamImage defined by a spectral cube.
         '''
-        # lam, x, eta are cube coordinates - we need to get them from the cube's WCS
+        # lam, x, eta are cube coordinates - we need to get them from
+        # the cube's WCS
         # Separate the cube's WCS into the components
         # NOTE: the order must be (xi, eta, lambda)!
         # TODO: Should psf default to None?
@@ -507,7 +508,7 @@ class XiLamImage(object):
         wcs_eta = cube.wcs.sub([2])
         wcs_lam = cube.wcs.sub([3])
 
-        (n_lam, n_eta, n_x) = cube.data.shape
+        (n_lam, n_eta, n_x) = cube.flux.shape
 
         cube_x = wcs_x.all_pix2world(np.arange(n_x), 0)[0]
         cube_eta = wcs_eta.all_pix2world(np.arange(n_eta), 0)[0]
@@ -516,8 +517,8 @@ class XiLamImage(object):
 
         for i, eta in enumerate(cube_eta):
             # TODO: where do we get dlam_by_deta from?
-            # TODO: We must not map the entire cube, but only those layers that are
-            #       within the slit!
+            # TODO: We must not map the entire cube, but only those layers
+            #       that are within the slit!
             # cube_lam is the wavelength for the central layer
             # a layer at eta has lam shifted by dlam_by_deta * eta
             if abs(eta) > self.slit_width / 2:
@@ -527,16 +528,13 @@ class XiLamImage(object):
             # lam0 is the target wavelength. We need to check that this
             # overlaps with the wavelength range covered by the cube
             if lam0.min() < cube_lam.max() and lam0.max() > cube_lam.min():
-                plane = cube.data[:, i, :].T
+                plane = cube.flux[:, i, :].T
                 fits.writeto("testplane.fits", plane, overwrite=True)
                 plane_interp = RectBivariateSpline(cube_x, cube_lam, plane)
                 planei = plane_interp(cube_x, lam0)
                 print("INTERPOLATED: planei", planei.shape, "on image", self.image.shape)
                 self.image += planei   # TODO: apply transmission
                 fits.writeto("testplanei.fits", planei, overwrite=True)
-
-
-
 
 
     def writeto(self, outfile, overwrite=True):

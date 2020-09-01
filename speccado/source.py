@@ -28,9 +28,10 @@ class CubeSource():
     '''
 
     def __init__(self, srccube, psf=None):
+        ## TODO: This should not be hardcoded
+        area_scope = 978 * u.m**2
+
         with fits.open(srccube) as hdul:
-            self.data = hdul[0].data    # assumes data are in primary HDU
-            self.wcs = WCS(hdul[0])     # cube wcs
             try:
                 fluxunit = u.Unit(hdul[0].header['BUNIT'])
             except KeyError:
@@ -38,13 +39,30 @@ class CubeSource():
                       ":\n    Required keyword 'BUNIT' not found")
                 sys.exit(1)
 
-        specwcs = self.wcs.sub([3])
-        zpix = np.arange(self.data.shape[0])
-        self.lam = specwcs.all_pix2world(zpix, 0)[0]
-        self.lam *= specwcs.wcs.cunit[0].to(u.um)
+            flux = hdul[0].data * fluxunit   # assumes data are in primary HDU
+            self.wcs = WCS(hdul[0])          # cube wcs
+            specwcs = self.wcs.sub([3])      # spectral part
+
+        # Convert to internal units: microns (u.um)
+        lamunit = u.Unit(specwcs.wcs.cunit[0])
+        zpix = np.arange(flux.shape[0])
+        temp_lam = specwcs.all_pix2world(zpix, 0)[0] * lamunit
+        temp_lam = convert_wav_units(temp_lam)
+        self.lam = temp_lam.value
+
+        # Fluxes are converted to
+        #       photons / s / m2 / arcsec2 / um  for cube data
+        # flux is 3D, hence lam needs to be made (pseudo)3D, too
+        flux = (area_scope *
+                convert_flux_units(flux,
+                                   self.lam[:, None, None] * u.um))
+        self.flux = flux.value
+        self.fluxunit = str(flux.unit)
 
         if psf is not None:
             self.convolve_with_psf(psf)
+
+        # Do we need a global interpolation function? Not for cubes.
 
 
     def convolve_with_psf(self, psf):
@@ -149,7 +167,6 @@ class Spectrum():
 
         self.wcs = WCS(specfile)
 
-        # TODO we need to be able to use cubes at some point
         lamunit = u.Unit(self.wcs.wcs.cunit[0])
 
         # Convert to internal units: microns (u.um)
