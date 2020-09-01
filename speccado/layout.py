@@ -426,7 +426,6 @@ class XiLamImage(object):
         '''
         Add a layer to the XiLamImage defined by a point source
         '''
-        wcs_spec = spec.wcs
         flux_interp = spec.interp
 
         # place a psf image for each src spectrum
@@ -468,7 +467,7 @@ class XiLamImage(object):
 
         Background spectra fill the entire slit homogeneously.
         '''
-        eta_scale = 2
+        eta_scale = 8
         slit_image = self.build_slit_image(spec, eta_scale, psf=None)
         flux_interp = spec.interp
 
