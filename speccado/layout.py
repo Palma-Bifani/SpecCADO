@@ -533,7 +533,8 @@ class XiLamImage(object):
                 plane_interp = RectBivariateSpline(cube_x, cube_lam, plane)
                 planei = plane_interp(cube_x, lam0)
                 print("INTERPOLATED: planei", planei.shape, "on image", self.image.shape)
-                self.image += planei   # TODO: apply transmission
+                self.image += planei * transmission(lam0).T
+
                 fits.writeto("testplanei.fits", planei, overwrite=True)
 
 
