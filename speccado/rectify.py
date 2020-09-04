@@ -76,7 +76,7 @@ def is_order_in_field(spectrace, chip):
     return np.any((xcorner > xlo) * (xcorner <= xhi))
 
 
-def rectify_trace(trace, chiplist, params):
+def rectify_trace(trace, chiplist, params, logscale=False):
     '''Create 2D spectrum for a trace
 
     Parameters
@@ -91,7 +91,6 @@ def rectify_trace(trace, chiplist, params):
     The function writes a FITS file with the rectified spectrum.
 
 '''
-
     filebase = splitext(basename(trace.name))[0]
 
     # Check whether the trace is on any chips at all
@@ -121,12 +120,20 @@ def rectify_trace(trace, chiplist, params):
     ## TODO: Convert xi to arcsec
     ## TODO: Define xi_min and delta_xi
     wcs = WCS(naxis=2)
-    wcs.wcs.ctype = ['WAVE', 'LINEAR']
-    wcs.wcs.cname = ['WAVELEN', 'SLITPOS']
-    wcs.wcs.cunit = ['um', 'arcsec']
-    wcs.wcs.crpix = [1, 1]
-    wcs.wcs.crval = [lam_min, xi_min]
-    wcs.wcs.cdelt = [dlam_pix, delta_xi]
+    if logscale:
+        wcs.wcs.ctype = ['WAVE-LOG', 'LINEAR']
+        wcs.wcs.cname = ['WAVELEN', 'SLITPOS']
+        wcs.wcs.cunit = ['um', 'arcsec']
+        wcs.wcs.crpix = [1, 1]
+        wcs.wcs.crval = [lam_min, xi_min]
+        wcs.wcs.cdelt = [dlam_pix, delta_xi]
+    else:
+        wcs.wcs.ctype = ['WAVE', 'LINEAR']
+        wcs.wcs.cname = ['WAVELEN', 'SLITPOS']
+        wcs.wcs.cunit = ['um', 'arcsec']
+        wcs.wcs.crpix = [1, 1]
+        wcs.wcs.crval = [lam_min, xi_min]
+        wcs.wcs.cdelt = [dlam_pix, delta_xi]
 
     ## Now I could create Xi, Lam images
     Iarr, Jarr = np.meshgrid(np.arange(n_lam, dtype=np.float32),
