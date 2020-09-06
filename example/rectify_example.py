@@ -18,7 +18,7 @@ import simcado as sim
 import speccado as sc
 
 
-def main(filename):
+def main(filename, logscale):
     '''Main function'''
 
     # Open the FITS file. This should contain all the information needed
@@ -43,7 +43,7 @@ def main(filename):
     spec_order_layout = hdulist[0].header['SPEC_ORDER_LAYOUT']
     tracelist = sc.layout.read_spec_order(spec_order_layout)
     for trace in tracelist:
-        sc.rectify.rectify_trace(trace, chiplist, params)
+        sc.rectify.rectify_trace(trace, chiplist, params, logscale)
 
     # hdulist has to be kept open till now
     hdulist.close()
@@ -55,4 +55,8 @@ if __name__ == "__main__":
         sys.exit("Please provide a file name")
     else:
         print(sys.argv[1])
-        main(sys.argv[1])
+        if len(sys.argv) == 2:
+            logscale=False
+        else:
+            logscale=True
+        main(sys.argv[1], logscale)
