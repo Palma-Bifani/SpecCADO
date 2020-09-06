@@ -1,3 +1,6 @@
+# Large file
+example/testcube_nosky.fits
+
 # Byte-compiled files
 __pycache__/
 *.py[cod]
