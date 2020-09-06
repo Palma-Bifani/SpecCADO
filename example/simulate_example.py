@@ -24,6 +24,8 @@ parameters : strings of the form "PARAMETER_NAME=VALUE", where
 
 # 2019-03-31: Test atmospheric transmission on a constant source spectrum
 # 2019-04-01: Move simulation functionality to speccado.simulation
+# 2020-07-28: Test refactoring of layout.py to enable cube readin
+# 2020-09-06: Make this the offcial simulate_example.py for SpecCADO
 
 import sys
 import getopt
@@ -102,18 +104,24 @@ def main(progname, argv):
     cmds.update(pardict)
 
     ## Define the source(s)  -- Only point sources for the moment
-    specfiles = ['GW_Ori+9mag.fits', 'GW_Ori+9mag.fits']
-    sourcepos = [[-1, 0], [1, 0]]
-
-    # Constant source spectrum
-    #specfiles = ['const.fits']
+    specfiles = []
+    sourcepos = []
+    #specfiles = ['GW_Ori+9mag.fits']
     #sourcepos = [[0, 0]]
+    #specfiles = ['GW_Ori+9mag.fits', 'GW_Ori+9mag.fits']
+    #sourcepos = [[-1, 0], [1, 0]]
 
     ## Background spectra - these fill the slit
     bgfiles = ['atmo_emission.fits']
+    #bgfiles = ['atmo_smooth.fits']
     #bgfiles = []
 
-    outfile = sc.simulate(cmds, specfiles, sourcepos, bgfiles, chip=chip)
+    ## Spectral cubes
+    cubefiles = ['testcube_nosky.fits']
+    #cubefiles = []
+
+    outfile = sc.simulate(cmds, specfiles, sourcepos, bgfiles, cubefiles,
+                          chip=chip)
     print("Simulated file is ", outfile)
 
 
