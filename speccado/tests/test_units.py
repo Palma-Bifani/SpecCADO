@@ -11,69 +11,46 @@ from speccado.source import convert_wav_units, convert_flux_units
 class TestWavUnits:
     """Tests of function sc.source.convert_wav_units"""
 
-    def test_wavelength(self):
+    @pytest.mark.parametrize("inwav, testwav",
+                             [(1.234 * u.nm, 0.001234 * u.um),
+                              (98765 * u.angstrom, 9.8765 * u.um),
+                              (3.24 * u.um, 3.24 * u.um),
+                              (3.42e-06 * u.m, 3.42 * u.um)])
+    def test_wavelength(self, inwav, testwav):
         """Conversion of various wavelength units"""
+        outwav = convert_wav_units(inwav)
+        assert np.isclose(outwav.value, testwav.value)
 
-        inlist = [1.234 * u.nm,
-                  98765 * u.angstrom,
-                  3.24 * u.um,
-                  3.42e-06 * u.m]
-        testlist = [0.001234 * u.um,
-                    9.8765 * u.um,
-                    3.24 * u.um,
-                    3.42 * u.um]
-        for inwav, testwav in zip(inlist, testlist):
-            outwav = convert_wav_units(inwav)
-            assert np.isclose(outwav.value, testwav.value)
-
-
-    def test_wavenumber(self):
+    @pytest.mark.parametrize("inwav, testwav",
+                             [(8103727.71474878 * u.cm**(-1), 0.001234 * u.um),
+                              (101250.44297069 * u.m**(-1), 9.8765 * u.um),
+                              (0.30864198 * u.um**(-1), 3.24 * u.um),
+                              (292.39766082 * u.mm**(-1), 3.42 * u.um)])
+    def test_wavenumber(self, inwav, testwav):
         """Conversion of wavenumber to wavelength"""
-        testlist = np.array([0.001234,
-                             9.8765,
-                             3.24,
-                             3.42]) * u.um
-        inlist = [8103727.71474878 * u.cm**(-1),
-                  101250.44297069 * u.m**(-1),
-                  0.30864198 * u.um**(-1),
-                  292.39766082 * u.mm**(-1)]
-        for inwav, testwav in zip(inlist, testlist):
-            outwav = convert_wav_units(inwav)
-            assert np.isclose(outwav.value, testwav.value)
+        outwav = convert_wav_units(inwav)
+        assert np.isclose(outwav.value, testwav.value)
 
 
-    def test_frequency(self):
+    @pytest.mark.parametrize("inwav, testwav",
+                             [(2.42943645e+05 * u.THz, 0.001234* u.um),
+                              (3.03541192e+04 * u.GHz, 9.8765 * u.um),
+                              (9.25285364e+07 * u.MHz, 3.24* u.um),
+                              (8.76586135e+13 / u.s, 3.42 * u.um)])
+    def test_frequency(self, inwav, testwav):
         """Conversion of frequency to wavelength"""
-        testlist = np.array([0.001234,
-                             9.8765,
-                             3.24,
-                             3.42]) * u.um
+        outwav = convert_wav_units(inwav)
+        assert np.isclose(outwav.value, testwav.value)
 
-        inlist = [2.42943645e+05 * u.THz,
-                  3.03541192e+04 * u.GHz,
-                  9.25285364e+07 * u.MHz,
-                  8.76586135e+13 / u.s]
-
-        for inwav, testwav in zip(inlist, testlist):
-            outwav = convert_wav_units(inwav)
-            assert np.isclose(outwav.value, testwav.value)
-
-
-    def test_photon_energy(self):
+    @pytest.mark.parametrize("inwav, testwav",
+                             [(1.60976161e-09 * u.erg, 0.001234 * u.um),
+                              (0.12553455 * u.eV, 9.8765 * u.um),
+                              (6.13100563e-20 * u.J, 3.24 * u.um),
+                              (0.00036253 * u.keV, 3.42 * u.um)])
+    def test_photon_energy(self, inwav, testwav):
         """Conversion of photon energy to wavelength"""
-        testlist = np.array([0.001234,
-                             9.8765,
-                             3.24,
-                             3.42]) * u.um
-        inlist = [1.60976161e-09 * u.erg,
-                  0.12553455 * u.eV,
-                  6.13100563e-20 * u.J,
-                  0.00036253 * u.keV]
-
-        for inwav, testwav in zip(inlist, testlist):
-            outwav = convert_wav_units(inwav)
-            assert np.isclose(outwav.value, testwav.value)
-
+        outwav = convert_wav_units(inwav)
+        assert np.isclose(outwav.value, testwav.value)
 
     def test_incompatible_units(self):
         """Test one case of non-equivalent units"""
