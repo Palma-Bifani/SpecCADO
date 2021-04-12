@@ -39,7 +39,7 @@ class CubeSource():
                       ":\n    Required keyword 'BUNIT' not found")
                 sys.exit(1)
 
-            flux = hdul[0].data * fluxunit   # assumes data are in primary HDU
+            flux = hdul[0].data.astype(np.float32) * fluxunit   # assumes data are in primary HDU
             self.wcs = WCS(hdul[0])          # cube wcs
             specwcs = self.wcs.sub([3])      # spectral part
 
